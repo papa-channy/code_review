@@ -1,0 +1,110 @@
+%% ============================================================================
+%% EmailHub System Overview Diagram
+%% ============================================================================
+%% Comprehensive view of EmailHub architecture and data flows
+%% ============================================================================
+
+flowchart TB
+    subgraph Providers["Email Providers"]
+        Gmail[Gmail API]
+        Outlook[Microsoft Graph]
+        Naver[Naver Mail<br/>IMAP/SMTP]
+    end
+
+    subgraph OAuth["OAuth 2.0 Flow"]
+        Auth[OAuth Authorize]
+        Callback[OAuth Callback]
+        Token[Token Storage<br/>Vault]
+    end
+
+    subgraph Sync["Email Sync"]
+        FullSync[Full Sync<br/>Initial Load]
+        IncrSync[Incremental Sync<br/>Delta Updates]
+        Worker[Celery Worker<br/>core queue]
+    end
+
+    subgraph Storage["Data Storage"]
+        PG[(PostgreSQL<br/>emails<br/>email_accounts<br/>email_contacts)]
+        Vault[(Vault<br/>OAuth Tokens)]
+        MinIO[(MinIO<br/>Attachments)]
+    end
+
+    subgraph AI["AI Pipeline"]
+        Spam[Stage 1<br/>Spam Filter]
+        Importance[Stage 2<br/>Importance Score]
+        Category[Stage 3<br/>Categorization]
+        LLM[LLM<br/>XAI Grok]
+    end
+
+    subgraph UI["Frontend UI"]
+        Inbox[Inbox View]
+        Detail[Email Detail]
+        Compose[Compose Modal]
+        Settings[Account Settings]
+    end
+
+    %% OAuth flow
+    Settings --> Auth
+    Auth --> Gmail & Outlook & Naver
+    Gmail & Outlook & Naver --> Callback
+    Callback --> Token
+    Token --> Vault
+
+    %% Sync flow
+    Settings --> FullSync
+    FullSync --> Worker
+    IncrSync --> Worker
+    Worker --> Gmail & Outlook & Naver
+    Worker --> PG
+
+    %% AI processing
+    Worker --> Spam
+    Spam --> Importance
+    Importance --> Category
+    Spam & Importance & Category --> LLM
+    Category --> PG
+
+    %% UI data flow
+    PG --> Inbox
+    PG --> Detail
+    Detail --> Compose
+    Compose --> Worker
+    Worker --> Gmail & Outlook & Naver
+
+    %% Attachments
+    Compose --> MinIO
+    MinIO --> Detail
+
+    style LLM fill:#f59e0b,color:#000
+    style Gmail fill:#ea4335,color:#fff
+    style Outlook fill:#00a4ef,color:#fff
+    style Naver fill:#03cf5d,color:#000
+    style Vault fill:#10b981,color:#fff
+
+%% ============================================================================
+%% Key Tables
+%% ============================================================================
+%% email_accounts:
+%%   - id, user_id, provider, email_address
+%%   - oauth_token_ref, history_id, delta_link
+%%   - last_sync_at, sync_enabled
+%%
+%% emails:
+%%   - id, account_id, external_id, thread_id
+%%   - from_email, to_emails, cc_emails, subject
+%%   - body_text, body_html, snippet
+%%   - is_read, is_starred, is_archived, is_deleted
+%%   - ai_importance_score, ai_category, ai_urgency
+%%   - ai_is_spam, ai_spam_score, ai_summary
+%%
+%% email_contacts:
+%%   - id, user_id, email, name
+%%   - is_vip, vip_level
+%%   - total_received, total_sent
+%%   - last_interaction_at
+%%
+%% email_sync_logs:
+%%   - id, account_id, sync_type, status
+%%   - emails_fetched, emails_processed
+%%   - history_id_before, history_id_after
+%% ============================================================================

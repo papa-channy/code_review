@@ -1,0 +1,83 @@
+%% ============================================================================
+%% Mermaid Diagram Template
+%% ============================================================================
+%% scenario_id: {SCENARIO_ID}
+%% scenario_name: {SCENARIO_NAME}
+%% actors: {ACTORS}
+%% last_updated: {DATE}
+%% ============================================================================
+%%
+%% USAGE:
+%% 1. Copy this template to your scenario folder as diagram.mermaid
+%% 2. Replace placeholders {SCENARIO_ID}, {SCENARIO_NAME}, etc.
+%% 3. Choose the appropriate diagram type below
+%% 4. Remove unused diagram sections
+%%
+%% SUPPORTED DIAGRAM TYPES:
+%% - sequenceDiagram: For user flows, API calls, interactions
+%% - flowchart: For decision flows, process diagrams
+%% - stateDiagram-v2: For state machines, lifecycle diagrams
+%%
+%% ACTOR REFERENCE:
+%% - 1-1: License Server (Control-plane)
+%% - 1-2: Consumer Server (Control-plane)
+%% - 2: Tenant Server (Data-plane)
+%% - 3: B2B User
+%% - 4: Individual User
+%% ============================================================================
+
+sequenceDiagram
+    autonumber
+
+    %% Define participants
+    participant U as User
+    participant CS as Consumer Server (1-2)
+    participant LS as License Server (1-1)
+    participant TS as Tenant Server (2)
+    participant DB as Database
+
+    Note over U,DB: {SCENARIO_NAME}
+
+    %% Main flow
+    U->>CS: 1. Request action
+    CS->>DB: 2. Query/Update
+    DB-->>CS: 3. Response
+    CS-->>U: 4. Result
+
+    Note over U,DB: Flow Complete
+
+%% ============================================================================
+%% ALTERNATIVE: Flowchart Template
+%% ============================================================================
+%% Uncomment and modify if using flowchart instead
+
+%% flowchart LR
+%%     subgraph Actor1["Actor 1"]
+%%         A1[Step 1]
+%%         A2[Step 2]
+%%     end
+%%
+%%     subgraph Actor2["Actor 2"]
+%%         B1[Step 1]
+%%         B2[Step 2]
+%%     end
+%%
+%%     A1 --> A2
+%%     A2 --> B1
+%%     B1 --> B2
+
+%% ============================================================================
+%% ALTERNATIVE: State Diagram Template
+%% ============================================================================
+%% Uncomment and modify if using state diagram instead
+
+%% stateDiagram-v2
+%%     [*] --> State1
+%%     State1 --> State2: Event
+%%     State2 --> State3: Event
+%%     State3 --> [*]
+%%
+%%     state State1 {
+%%         [*] --> SubState1
+%%         SubState1 --> SubState2
+%%     }

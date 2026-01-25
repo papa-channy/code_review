@@ -1,0 +1,493 @@
+# ============================================================================
+# CR-03: Review Execution
+# ============================================================================
+# Execute tier-specific and change-type-specific checklists
+# Based on CLAUDE.md Section 4: Review Checklists
+
+schema_version: "2.0"
+scenario_id: "CR-03"
+scenario_name: "Review Execution"
+scenario_name_ko: "리뷰 수행"
+last_updated: "2026-01-24"
+
+# ============================================================================
+# Entities
+# ============================================================================
+entities:
+  - ref: "reviewer"
+  - ref: "senior_reviewer"
+  - ref: "security_team"
+  - ref: "compliance_team"
+  - ref: "pull_request"
+  - ref: "checklist"
+  - ref: "finding"
+  - ref: "ci_cd"
+  - ref: "static_analyzer"
+  - ref: "test_runner"
+
+# ============================================================================
+# Nodes
+# ============================================================================
+nodes:
+  # Start
+  - id: "N10"
+    entity: "pull_request"
+    label: "Receive Tier Assignment"
+    label_ko: "Tier 할당 수신"
+    kind: "start"
+    order: 10
+    description: "Receive review tier from CR-02"
+    description_ko: "CR-02에서 리뷰 Tier 수신"
+
+  # Common Checklist (All Tiers)
+  - id: "N20"
+    entity: "ci_cd"
+    label: "Run Common Checks"
+    label_ko: "공통 체크 실행"
+    kind: "action"
+    order: 20
+    description: "Build, tests, lint, static analysis"
+    description_ko: "빌드, 테스트, 린트, 정적 분석"
+    meta:
+      checklist:
+        - "Build success"
+        - "Existing tests pass"
+        - "No obvious security vulnerabilities"
+        - "Coding style/convention compliance"
+        - "Lint/static analysis pass"
+
+  - id: "N25"
+    entity: "ci_cd"
+    label: "Common Checks Pass?"
+    label_ko: "공통 체크 통과?"
+    kind: "decision"
+    order: 25
+    description: "Verify all common checks passed"
+    description_ko: "모든 공통 체크 통과 확인"
+
+  # Tier Decision
+  - id: "N30"
+    entity: "checklist"
+    label: "Select Tier Checklist"
+    label_ko: "Tier 체크리스트 선택"
+    kind: "decision"
+    order: 30
+    description: "Select appropriate checklist based on tier"
+    description_ko: "Tier에 맞는 체크리스트 선택"
+
+  # TIER 1 Review
+  - id: "N31"
+    entity: "senior_reviewer"
+    label: "TIER 1: Security Review"
+    label_ko: "TIER 1: 보안 검토"
+    kind: "action"
+    order: 31
+    description: "Auth/encryption/data exposure/compliance"
+    description_ko: "인증/암호화/데이터 노출/컴플라이언스"
+    meta:
+      checklist:
+        - "Auth/AuthZ logic correctness"
+        - "Encryption (at-rest, in-transit)"
+        - "Sensitive data exposure risk"
+        - "Regulatory requirements (SOX/PCI/HIPAA/GDPR)"
+        - "Audit log adequacy"
+
+  - id: "N32"
+    entity: "senior_reviewer"
+    label: "TIER 1: Architecture Review"
+    label_ko: "TIER 1: 아키텍처 검토"
+    kind: "action"
+    order: 32
+    description: "System design, scalability, dependencies"
+    description_ko: "시스템 설계, 확장성, 의존성"
+    meta:
+      checklist:
+        - "System design principles"
+        - "Scalability/performance impact"
+        - "Service dependencies"
+        - "API contract compatibility"
+
+  - id: "N33"
+    entity: "senior_reviewer"
+    label: "TIER 1: Operations Review"
+    label_ko: "TIER 1: 운영 검토"
+    kind: "action"
+    order: 33
+    description: "Rollback, deployment, monitoring, incident"
+    description_ko: "롤백, 배포, 모니터링, 장애 대응"
+    meta:
+      checklist:
+        - "Rollback plan"
+        - "Deployment strategy (Blue-Green, Canary)"
+        - "Monitoring/alerting setup"
+        - "Incident response plan"
+
+  # TIER 2 Review
+  - id: "N41"
+    entity: "senior_reviewer"
+    label: "TIER 2: Business Logic"
+    label_ko: "TIER 2: 비즈니스 로직"
+    kind: "action"
+    order: 41
+    description: "Requirements, edge cases, errors, transactions"
+    description_ko: "요구사항, 엣지 케이스, 에러, 트랜잭션"
+    meta:
+      checklist:
+        - "Requirements/story fulfillment"
+        - "Edge case handling"
+        - "Error handling adequacy"
+        - "Transaction consistency"
+
+  - id: "N42"
+    entity: "test_runner"
+    label: "TIER 2: Test Review"
+    label_ko: "TIER 2: 테스트 검토"
+    kind: "action"
+    order: 42
+    description: "Unit tests, integration tests, coverage"
+    description_ko: "단위 테스트, 통합 테스트, 커버리지"
+    meta:
+      checklist:
+        - "Unit test additions/modifications"
+        - "Integration test coverage"
+        - "Test case sufficiency"
+        - "Regression test pass"
+
+  - id: "N43"
+    entity: "senior_reviewer"
+    label: "TIER 2: Performance"
+    label_ko: "TIER 2: 성능 검토"
+    kind: "action"
+    order: 43
+    description: "Query optimization, N+1, resources"
+    description_ko: "쿼리 최적화, N+1, 리소스 사용"
+    meta:
+      checklist:
+        - "Query optimization"
+        - "No N+1 problems"
+        - "Memory/resource usage"
+
+  # TIER 3 Review
+  - id: "N51"
+    entity: "reviewer"
+    label: "TIER 3: Functionality"
+    label_ko: "TIER 3: 기능 검증"
+    kind: "action"
+    order: 51
+    description: "Feature works, UI/UX, logging"
+    description_ko: "기능 동작, UI/UX, 로깅"
+    meta:
+      checklist:
+        - "Feature works correctly"
+        - "UI/UX consistency"
+        - "Appropriate logging"
+
+  - id: "N52"
+    entity: "reviewer"
+    label: "TIER 3: Code Quality"
+    label_ko: "TIER 3: 코드 품질"
+    kind: "action"
+    order: 52
+    description: "Readability, duplication, naming, comments"
+    description_ko: "가독성, 중복, 네이밍, 주석"
+    meta:
+      checklist:
+        - "Code readability"
+        - "Minimal duplication"
+        - "Appropriate naming"
+        - "Comment necessity/adequacy"
+
+  # TIER 4 Review
+  - id: "N61"
+    entity: "ci_cd"
+    label: "TIER 4: Automated Only"
+    label_ko: "TIER 4: 자동화 검증"
+    kind: "action"
+    order: 61
+    description: "CI pass, no obvious errors"
+    description_ko: "CI 통과, 명백한 오류 없음"
+    meta:
+      checklist:
+        - "CI pipeline pass"
+        - "No obvious errors"
+        - "Change scope matches description"
+
+  # Change Type Specific
+  - id: "N70"
+    entity: "checklist"
+    label: "Apply Change Type Checklist"
+    label_ko: "변경 유형별 체크리스트 적용"
+    kind: "action"
+    order: 70
+    description: "Apply Corrective/Adaptive/Perfective/Preventive specific checks"
+    description_ko: "Corrective/Adaptive/Perfective/Preventive 유형별 체크 적용"
+    meta:
+      corrective:
+        - "Root cause documented"
+        - "Reproduction test included"
+        - "Regression prevention test"
+        - "Similar bugs in other locations"
+      adaptive:
+        - "Compatibility matrix verified"
+        - "Migration script/procedure"
+        - "Rollback procedure"
+        - "Dependency versions specified"
+      perfective:
+        - "Requirement traceability"
+        - "Acceptance criteria met"
+        - "Documentation updated"
+        - "Feature flag applied"
+      preventive:
+        - "Behavior preservation"
+        - "Complexity reduction verified"
+        - "Test coverage maintained"
+        - "No performance degradation"
+
+  # Record Findings
+  - id: "N80"
+    entity: "finding"
+    label: "Record Findings"
+    label_ko: "발견사항 기록"
+    kind: "action"
+    order: 80
+    description: "Document all findings with severity and category"
+    description_ko: "모든 발견사항을 심각도와 카테고리와 함께 기록"
+
+  # End
+  - id: "N90"
+    entity: "pull_request"
+    label: "Review Complete"
+    label_ko: "리뷰 완료"
+    kind: "end"
+    order: 90
+    description: "All applicable checklists completed"
+    description_ko: "모든 적용 가능한 체크리스트 완료"
+
+  # Exception
+  - id: "N26"
+    entity: "pull_request"
+    label: "Request Fix"
+    label_ko: "수정 요청"
+    kind: "error"
+    order: 26
+    description: "Common checks failed, request developer fix"
+    description_ko: "공통 체크 실패, 개발자에게 수정 요청"
+    hidden: true
+
+# ============================================================================
+# Edges
+# ============================================================================
+edges:
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "start"
+    label_ko: "시작"
+    kind: "main"
+    order: 11
+
+  - id: "E20"
+    source: "N20"
+    target: "N25"
+    label: "verify"
+    label_ko: "검증"
+    kind: "main"
+    order: 21
+
+  - id: "E25Y"
+    source: "N25"
+    target: "N30"
+    label: "PASS"
+    label_ko: "통과"
+    kind: "main"
+    order: 26
+
+  - id: "E25N"
+    source: "N25"
+    target: "N26"
+    label: "FAIL"
+    label_ko: "실패"
+    kind: "exception"
+    order: 27
+
+  # Tier branches
+  - id: "E30T1"
+    source: "N30"
+    target: "N31"
+    label: "TIER 1"
+    label_ko: "TIER 1"
+    kind: "main"
+    order: 31
+
+  - id: "E30T2"
+    source: "N30"
+    target: "N41"
+    label: "TIER 2"
+    label_ko: "TIER 2"
+    kind: "alt"
+    order: 32
+
+  - id: "E30T3"
+    source: "N30"
+    target: "N51"
+    label: "TIER 3"
+    label_ko: "TIER 3"
+    kind: "alt"
+    order: 33
+
+  - id: "E30T4"
+    source: "N30"
+    target: "N61"
+    label: "TIER 4"
+    label_ko: "TIER 4"
+    kind: "alt"
+    order: 34
+
+  # TIER 1 chain
+  - id: "E31"
+    source: "N31"
+    target: "N32"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 35
+
+  - id: "E32"
+    source: "N32"
+    target: "N33"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 36
+
+  - id: "E33"
+    source: "N33"
+    target: "N70"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 37
+
+  # TIER 2 chain
+  - id: "E41"
+    source: "N41"
+    target: "N42"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 41
+
+  - id: "E42"
+    source: "N42"
+    target: "N43"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 42
+
+  - id: "E43"
+    source: "N43"
+    target: "N70"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 43
+
+  # TIER 3 chain
+  - id: "E51"
+    source: "N51"
+    target: "N52"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 51
+
+  - id: "E52"
+    source: "N52"
+    target: "N70"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 52
+
+  # TIER 4 to change type
+  - id: "E61"
+    source: "N61"
+    target: "N70"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 61
+
+  # Change type to findings
+  - id: "E70"
+    source: "N70"
+    target: "N80"
+    label: "record"
+    label_ko: "기록"
+    kind: "main"
+    order: 71
+
+  # Findings to end
+  - id: "E80"
+    source: "N80"
+    target: "N90"
+    label: "complete"
+    label_ko: "완료"
+    kind: "main"
+    order: 81
+
+# ============================================================================
+# Paths
+# ============================================================================
+paths:
+  main:
+    name: "TIER 1 Full Review"
+    name_ko: "TIER 1 심층 리뷰"
+    nodes: ["N10", "N20", "N25", "N30", "N31", "N32", "N33", "N70", "N80", "N90"]
+    description: "Complete review for critical/regulated changes"
+
+  tier2_path:
+    name: "TIER 2 Comprehensive"
+    name_ko: "TIER 2 종합 리뷰"
+    nodes: ["N10", "N20", "N25", "N30", "N41", "N42", "N43", "N70", "N80", "N90"]
+    description: "Business logic and test focused review"
+
+  tier3_path:
+    name: "TIER 3 Standard"
+    name_ko: "TIER 3 표준 리뷰"
+    nodes: ["N10", "N20", "N25", "N30", "N51", "N52", "N70", "N80", "N90"]
+    description: "Functionality and quality focused review"
+
+  tier4_path:
+    name: "TIER 4 Light"
+    name_ko: "TIER 4 경량 리뷰"
+    nodes: ["N10", "N20", "N25", "N30", "N61", "N70", "N80", "N90"]
+    description: "Automated verification focused review"
+
+# ============================================================================
+# Annotations
+# ============================================================================
+annotations:
+  - target: "N20"
+    type: "info"
+    text: "Common checks apply to all tiers"
+    text_ko: "공통 체크는 모든 Tier에 적용"
+
+  - target: "N70"
+    type: "info"
+    text: "Apply based on Change Type from CR-01"
+    text_ko: "CR-01의 변경 유형에 따라 적용"
+
+  - target: "N80"
+    type: "warning"
+    text: "Use standardized severity: CRITICAL/HIGH/MEDIUM/LOW/INFO"
+    text_ko: "표준화된 심각도 사용: CRITICAL/HIGH/MEDIUM/LOW/INFO"
+
+# ============================================================================
+# Layout
+# ============================================================================
+layout:
+  direction: "TB"
+  node_spacing: 50
+  rank_spacing: 60

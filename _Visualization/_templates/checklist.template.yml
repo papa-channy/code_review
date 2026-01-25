@@ -1,0 +1,120 @@
+# ============================================================================
+# Checklist Template
+# ============================================================================
+# Copy this template to your scenario folder as checklist.yml
+# Replace placeholders and customize categories/items
+
+schema_version: "1.0"
+scenario_id: "{SCENARIO_ID}"
+scenario_name: "{SCENARIO_NAME}"
+
+# ============================================================================
+# Categories
+# ============================================================================
+# Recommended categories:
+# - Security: Authentication, authorization, encryption, tokens
+# - Data: Storage, export, retention, deletion
+# - Policy: Business rules, compliance, legal requirements
+# - Integration: API, SSO, webhooks, external systems
+# - UX: User interface, error messages, notifications
+# - Audit: Logging, compliance, monitoring
+
+categories:
+  - name: "Security"
+    icon: "shield"
+    items:
+      - id: "SEC-001"
+        title: "Authentication method defined"
+        description: "Define how users authenticate in this scenario"
+        status: "pending"  # pending | in_progress | completed | blocked
+        priority: "critical"  # critical | high | medium | low
+        notes: ""
+        assignee: ""
+        due_date: ""
+
+      - id: "SEC-002"
+        title: "Authorization rules defined"
+        description: "Define who can perform this action"
+        status: "pending"
+        priority: "high"
+        notes: ""
+
+  - name: "Data"
+    icon: "database"
+    items:
+      - id: "DAT-001"
+        title: "Data ownership defined"
+        description: "Clarify who owns the data in this scenario"
+        status: "pending"
+        priority: "high"
+        notes: ""
+
+      - id: "DAT-002"
+        title: "Retention policy defined"
+        description: "Define how long data is kept"
+        status: "pending"
+        priority: "medium"
+        notes: ""
+
+  - name: "Policy"
+    icon: "file-text"
+    items:
+      - id: "POL-001"
+        title: "Business rules documented"
+        description: "Document all business rules for this scenario"
+        status: "pending"
+        priority: "high"
+        notes: ""
+
+      - id: "POL-002"
+        title: "Edge cases identified"
+        description: "Identify and document edge cases"
+        status: "pending"
+        priority: "medium"
+        notes: ""
+
+  - name: "Integration"
+    icon: "link"
+    items:
+      - id: "INT-001"
+        title: "API endpoints defined"
+        description: "Define required API endpoints"
+        status: "pending"
+        priority: "high"
+        notes: ""
+
+  - name: "Audit"
+    icon: "clipboard"
+    items:
+      - id: "AUD-001"
+        title: "Audit log events defined"
+        description: "Define what events to log for audit"
+        status: "pending"
+        priority: "high"
+        notes: ""
+
+# ============================================================================
+# Summary (auto-calculated by viewer)
+# ============================================================================
+summary:
+  total: 0
+  completed: 0
+  in_progress: 0
+  pending: 0
+  blocked: 0
+
+# ============================================================================
+# Status Legend
+# ============================================================================
+# - pending: Not started
+# - in_progress: Currently working on
+# - completed: Done and verified
+# - blocked: Waiting on external dependency
+
+# ============================================================================
+# Priority Legend
+# ============================================================================
+# - critical: Must be done before any implementation
+# - high: Important for MVP
+# - medium: Nice to have
+# - low: Can be deferred

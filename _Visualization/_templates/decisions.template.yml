@@ -1,0 +1,120 @@
+# ============================================================================
+# Architecture Decision Records (ADR) Template
+# ============================================================================
+# Copy this template to your scenario folder as decisions.yml
+# Replace placeholders and add your decisions
+
+schema_version: "1.0"
+scenario_id: "{SCENARIO_ID}"
+scenario_name: "{SCENARIO_NAME}"
+
+# ============================================================================
+# Decisions
+# ============================================================================
+
+decisions:
+  - id: "DEC-001"
+    title: "{DECISION_TITLE}"
+    status: "proposed"  # proposed | under_review | decided | deprecated
+    date: "{DATE}"
+
+    # Context: Why is this decision needed?
+    context: |
+      Describe the context and problem statement.
+      What forces are at play? What constraints exist?
+
+    # Options: What are the alternatives?
+    options:
+      - id: "A"
+        name: "Option A Name"
+        pros:
+          - "Advantage 1"
+          - "Advantage 2"
+        cons:
+          - "Disadvantage 1"
+          - "Disadvantage 2"
+
+      - id: "B"
+        name: "Option B Name"
+        pros:
+          - "Advantage 1"
+        cons:
+          - "Disadvantage 1"
+
+    # Decision: Which option was selected? (null if not yet decided)
+    decision: null  # "A" | "B" | null
+
+    # Rationale: Why was this option chosen?
+    rationale: |
+      Explain why this option was selected.
+      Include trade-offs considered.
+
+    # Consequences: What are the implications?
+    consequences:
+      - "Consequence 1"
+      - "Consequence 2"
+
+    # Related: Links to other decisions
+    related_decisions: []  # ["DEC-002", "DEC-003"]
+
+# ============================================================================
+# Example Decision (Delete this after use)
+# ============================================================================
+#   - id: "DEC-002"
+#     title: "Authentication Method"
+#     status: "decided"
+#     date: "2026-01-04"
+#
+#     context: |
+#       We need to decide how users authenticate when signing up.
+#       Security and user experience must be balanced.
+#
+#     options:
+#       - id: "A"
+#         name: "Email + Password"
+#         pros:
+#           - "Familiar to users"
+#           - "Works offline"
+#         cons:
+#           - "Password management burden"
+#           - "Phishing risk"
+#
+#       - id: "B"
+#         name: "Passkey (WebAuthn)"
+#         pros:
+#           - "Phishing resistant"
+#           - "No password to remember"
+#         cons:
+#           - "Requires modern browser"
+#           - "Recovery complexity"
+#
+#     decision: "B"
+#
+#     rationale: |
+#       Passkey provides superior security with better UX.
+#       We'll support password as fallback.
+#
+#     consequences:
+#       - "Need passkey recovery flow"
+#       - "Must support both methods"
+#
+#     related_decisions: ["DEC-003"]
+
+# ============================================================================
+# Status Legend
+# ============================================================================
+# - proposed: Initial proposal, open for discussion
+# - under_review: Being actively reviewed by stakeholders
+# - decided: Final decision made
+# - deprecated: No longer relevant or superseded
+
+# ============================================================================
+# Best Practices
+# ============================================================================
+# 1. One decision per significant choice
+# 2. Keep context concise but complete
+# 3. List all viable options (2-4 typically)
+# 4. Be specific about pros/cons
+# 5. Document rationale clearly
+# 6. Update status as decision evolves
+# 7. Link related decisions

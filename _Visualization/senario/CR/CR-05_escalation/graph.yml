@@ -1,0 +1,421 @@
+# ============================================================================
+# CR-05: Escalation Process
+# ============================================================================
+# Handle uncertain classifications and escalate to appropriate teams
+# Based on CLAUDE.md Section 7: Escalation Paths
+
+schema_version: "2.0"
+scenario_id: "CR-05"
+scenario_name: "Escalation Process"
+scenario_name_ko: "에스컬레이션 프로세스"
+last_updated: "2026-01-24"
+
+# ============================================================================
+# Entities
+# ============================================================================
+entities:
+  - ref: "reviewer"
+  - ref: "senior_reviewer"
+  - ref: "tech_lead"
+  - ref: "architect"
+  - ref: "security_team"
+  - ref: "compliance_team"
+  - ref: "sre_team"
+  - ref: "domain_expert"
+  - ref: "escalation_handler"
+  - ref: "pull_request"
+
+# ============================================================================
+# Nodes
+# ============================================================================
+nodes:
+  # Start
+  - id: "N10"
+    entity: "reviewer"
+    label: "Identify Uncertainty"
+    label_ko: "불확실성 식별"
+    kind: "start"
+    order: 10
+    description: "Reviewer identifies unclear classification or issue"
+    description_ko: "리뷰어가 불명확한 분류 또는 이슈 식별"
+    meta:
+      principle: "When uncertain, default to higher tier"
+
+  # Decision Tree
+  - id: "N20"
+    entity: "escalation_handler"
+    label: "Classify Uncertainty Type"
+    label_ko: "불확실성 유형 분류"
+    kind: "decision"
+    order: 20
+    description: "Determine what type of escalation is needed"
+    description_ko: "필요한 에스컬레이션 유형 결정"
+
+  # Domain Knowledge Required
+  - id: "N30"
+    entity: "domain_expert"
+    label: "Consult Domain Expert"
+    label_ko: "도메인 전문가 상담"
+    kind: "action"
+    order: 30
+    description: "Request domain expert review for business logic"
+    description_ko: "비즈니스 로직에 대해 도메인 전문가 리뷰 요청"
+    meta:
+      channel: "#domain-experts"
+      use_when:
+        - "Business logic ambiguity"
+        - "Core domain changes"
+        - "Industry-specific requirements"
+
+  # Security Concern
+  - id: "N40"
+    entity: "security_team"
+    label: "Escalate to Security"
+    label_ko: "보안팀 에스컬레이션"
+    kind: "action"
+    order: 40
+    description: "Request security team immediate review"
+    description_ko: "보안팀 즉시 리뷰 요청"
+    meta:
+      channel: "#security-reviews"
+      use_when:
+        - "Potential vulnerability"
+        - "Auth/AuthZ changes"
+        - "Encryption/crypto changes"
+        - "Sensitive data handling"
+
+  # Regulatory/Legal
+  - id: "N50"
+    entity: "compliance_team"
+    label: "Escalate to Compliance"
+    label_ko: "컴플라이언스팀 에스컬레이션"
+    kind: "action"
+    order: 50
+    description: "Request compliance/legal team review"
+    description_ko: "컴플라이언스/법무팀 리뷰 요청"
+    meta:
+      channel: "#compliance"
+      use_when:
+        - "SOX-related changes"
+        - "PCI-DSS scope"
+        - "HIPAA/PHI handling"
+        - "GDPR/PII processing"
+
+  # Architecture Impact
+  - id: "N60"
+    entity: "architect"
+    label: "Escalate to Architect"
+    label_ko: "아키텍트 에스컬레이션"
+    kind: "action"
+    order: 60
+    description: "Request architect review for system-wide impact"
+    description_ko: "시스템 전체 영향에 대해 아키텍트 리뷰 요청"
+    meta:
+      channel: "#architecture-review"
+      use_when:
+        - "Cross-team impact"
+        - "API contract changes"
+        - "New service dependencies"
+        - "Major design changes"
+
+  # Operations/Performance
+  - id: "N70"
+    entity: "sre_team"
+    label: "Escalate to SRE"
+    label_ko: "SRE팀 에스컬레이션"
+    kind: "action"
+    order: 70
+    description: "Request SRE/Platform team review"
+    description_ko: "SRE/플랫폼팀 리뷰 요청"
+    meta:
+      channel: "#sre-support"
+      use_when:
+        - "Performance concerns"
+        - "Infrastructure changes"
+        - "Deployment strategy"
+        - "Monitoring/alerting"
+
+  # Reviewer Conflict
+  - id: "N80"
+    entity: "tech_lead"
+    label: "Escalate to Tech Lead"
+    label_ko: "테크 리드 에스컬레이션"
+    kind: "action"
+    order: 80
+    description: "Request tech lead to resolve reviewer conflict"
+    description_ko: "리뷰어 의견 충돌 해결을 위해 테크 리드 요청"
+    meta:
+      use_when:
+        - "Reviewers disagree"
+        - "Unclear ownership"
+        - "Standard interpretation needed"
+
+  # Classification Unclear
+  - id: "N90"
+    entity: "senior_reviewer"
+    label: "Escalate to Senior"
+    label_ko: "시니어 에스컬레이션"
+    kind: "action"
+    order: 90
+    description: "Request senior developer for classification confirmation"
+    description_ko: "분류 확인을 위해 시니어 개발자 요청"
+    meta:
+      principle: "Default to higher tier when uncertain"
+      use_when:
+        - "Classification unclear"
+        - "Risk assessment difficult"
+        - "Multiple factors conflict"
+
+  # Resolution
+  - id: "N100"
+    entity: "escalation_handler"
+    label: "Wait for Resolution"
+    label_ko: "해결 대기"
+    kind: "wait"
+    order: 100
+    description: "Wait for escalation target to respond"
+    description_ko: "에스컬레이션 대상의 응답 대기"
+
+  - id: "N110"
+    entity: "escalation_handler"
+    label: "Update Classification"
+    label_ko: "분류 업데이트"
+    kind: "action"
+    order: 110
+    description: "Update PR classification based on expert input"
+    description_ko: "전문가 의견에 따라 PR 분류 업데이트"
+
+  # End
+  - id: "N120"
+    entity: "pull_request"
+    label: "Resume Review"
+    label_ko: "리뷰 재개"
+    kind: "end"
+    order: 120
+    description: "Continue with updated classification and appropriate tier"
+    description_ko: "업데이트된 분류와 적절한 Tier로 리뷰 계속"
+
+# ============================================================================
+# Edges
+# ============================================================================
+edges:
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "analyze"
+    label_ko: "분석"
+    kind: "main"
+    order: 11
+
+  # Uncertainty type branches
+  - id: "E20D"
+    source: "N20"
+    target: "N30"
+    label: "Domain"
+    label_ko: "도메인"
+    kind: "main"
+    order: 21
+    condition: "Domain knowledge needed"
+
+  - id: "E20S"
+    source: "N20"
+    target: "N40"
+    label: "Security"
+    label_ko: "보안"
+    kind: "alt"
+    order: 22
+    condition: "Security concern"
+
+  - id: "E20C"
+    source: "N20"
+    target: "N50"
+    label: "Compliance"
+    label_ko: "컴플라이언스"
+    kind: "alt"
+    order: 23
+    condition: "Regulatory/legal"
+
+  - id: "E20A"
+    source: "N20"
+    target: "N60"
+    label: "Architecture"
+    label_ko: "아키텍처"
+    kind: "alt"
+    order: 24
+    condition: "Architecture impact"
+
+  - id: "E20O"
+    source: "N20"
+    target: "N70"
+    label: "Operations"
+    label_ko: "운영"
+    kind: "alt"
+    order: 25
+    condition: "Performance/ops concern"
+
+  - id: "E20T"
+    source: "N20"
+    target: "N80"
+    label: "Conflict"
+    label_ko: "충돌"
+    kind: "alt"
+    order: 26
+    condition: "Reviewer disagreement"
+
+  - id: "E20U"
+    source: "N20"
+    target: "N90"
+    label: "Unclear"
+    label_ko: "불명확"
+    kind: "alt"
+    order: 27
+    condition: "Classification uncertain"
+
+  # All paths to wait
+  - id: "E30"
+    source: "N30"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 31
+
+  - id: "E40"
+    source: "N40"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 41
+
+  - id: "E50"
+    source: "N50"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 51
+
+  - id: "E60"
+    source: "N60"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 61
+
+  - id: "E70"
+    source: "N70"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 71
+
+  - id: "E80"
+    source: "N80"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 81
+
+  - id: "E90"
+    source: "N90"
+    target: "N100"
+    label: "wait"
+    label_ko: "대기"
+    kind: "main"
+    order: 91
+
+  # Resolution
+  - id: "E100"
+    source: "N100"
+    target: "N110"
+    label: "resolved"
+    label_ko: "해결됨"
+    kind: "main"
+    order: 101
+
+  - id: "E110"
+    source: "N110"
+    target: "N120"
+    label: "resume"
+    label_ko: "재개"
+    kind: "main"
+    order: 111
+
+# ============================================================================
+# Paths
+# ============================================================================
+paths:
+  main:
+    name: "Domain Escalation"
+    name_ko: "도메인 에스컬레이션"
+    nodes: ["N10", "N20", "N30", "N100", "N110", "N120"]
+    description: "Escalate to domain expert"
+
+  security_path:
+    name: "Security Escalation"
+    name_ko: "보안 에스컬레이션"
+    nodes: ["N10", "N20", "N40", "N100", "N110", "N120"]
+    description: "Escalate to security team"
+
+  compliance_path:
+    name: "Compliance Escalation"
+    name_ko: "컴플라이언스 에스컬레이션"
+    nodes: ["N10", "N20", "N50", "N100", "N110", "N120"]
+    description: "Escalate to compliance team"
+
+  architecture_path:
+    name: "Architecture Escalation"
+    name_ko: "아키텍처 에스컬레이션"
+    nodes: ["N10", "N20", "N60", "N100", "N110", "N120"]
+    description: "Escalate to architect"
+
+# ============================================================================
+# Annotations
+# ============================================================================
+annotations:
+  - target: "N10"
+    type: "warning"
+    text: "When uncertain, ALWAYS escalate. Better safe than sorry."
+    text_ko: "불확실하면 항상 에스컬레이션. 안전한 방향으로."
+
+  - target: "N40"
+    type: "critical"
+    text: "Security concerns must be addressed immediately"
+    text_ko: "보안 우려는 즉시 처리 필수"
+
+  - target: "N90"
+    type: "info"
+    text: "Default to higher tier for unclear classifications"
+    text_ko: "불명확한 분류는 상위 Tier로 기본 설정"
+
+  - target: "N100"
+    type: "info"
+    text: "Don't block on escalation - continue other reviews"
+    text_ko: "에스컬레이션 대기 중에도 다른 리뷰 계속"
+
+# ============================================================================
+# Contact Template
+# ============================================================================
+meta:
+  contact_template: |
+    ## Escalation Contacts
+
+    | Area | Owner | Channel |
+    |------|-------|---------|
+    | Security | @security-team | #security-reviews |
+    | Compliance | @compliance-team | #compliance |
+    | Architecture | @architects | #architecture-review |
+    | SRE/Ops | @sre-team | #sre-support |
+    | Tech Lead | @tech-leads | Direct message |
+
+# ============================================================================
+# Layout
+# ============================================================================
+layout:
+  direction: "TB"
+  node_spacing: 50
+  rank_spacing: 60

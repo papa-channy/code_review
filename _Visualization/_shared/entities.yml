@@ -1,0 +1,338 @@
+# ============================================================================
+# Entity Registry - Code Review Pipeline
+# ============================================================================
+# All entities used in graph.yml must be registered here.
+# Scenarios can reference entities by ID instead of redefining them.
+#
+# Usage in graph.yml:
+#   entities:
+#     - ref: "developer"       # Reference to this registry
+#     - ref: "reviewer"        # Reference to this registry
+# ============================================================================
+
+schema_version: "2.0"
+last_updated: "2026-01-24"
+
+# ============================================================================
+# Entity Types
+# ============================================================================
+entity_types:
+  - id: "actor"
+    name: "Actor"
+    name_ko: "액터"
+    description: "Human user or role"
+    default_shape: "ellipse"
+
+  - id: "team"
+    name: "Team"
+    name_ko: "팀"
+    description: "Group of people or specialists"
+    default_shape: "hexagon"
+
+  - id: "system"
+    name: "System"
+    name_ko: "시스템"
+    description: "Internal system or service"
+    default_shape: "round-rectangle"
+
+  - id: "artifact"
+    name: "Artifact"
+    name_ko: "아티팩트"
+    description: "Code, document, or data object"
+    default_shape: "rectangle"
+
+  - id: "process"
+    name: "Process"
+    name_ko: "프로세스"
+    description: "Automated process or workflow"
+    default_shape: "stadium"
+
+# ============================================================================
+# Human Actors
+# ============================================================================
+entities:
+
+  - id: "developer"
+    label: "Developer"
+    label_ko: "개발자"
+    type: "actor"
+    color: "#3b82f6"  # blue
+    description: "PR author who submits code for review"
+    description_ko: "코드 리뷰를 위해 PR을 제출하는 개발자"
+    mermaid_alias: "DEV"
+    tags: ["actor", "author"]
+
+  - id: "reviewer"
+    label: "Reviewer"
+    label_ko: "리뷰어"
+    type: "actor"
+    color: "#10b981"  # emerald
+    description: "Team member who reviews the code"
+    description_ko: "코드를 리뷰하는 팀원"
+    mermaid_alias: "REV"
+    tags: ["actor", "reviewer"]
+
+  - id: "senior_reviewer"
+    label: "Senior Reviewer"
+    label_ko: "시니어 리뷰어"
+    type: "actor"
+    color: "#8b5cf6"  # violet
+    description: "Experienced reviewer for critical/complex changes"
+    description_ko: "중요하거나 복잡한 변경을 담당하는 경험 많은 리뷰어"
+    mermaid_alias: "SR"
+    tags: ["actor", "reviewer", "senior"]
+
+  - id: "tech_lead"
+    label: "Tech Lead"
+    label_ko: "테크 리드"
+    type: "actor"
+    color: "#6366f1"  # indigo
+    description: "Technical leader for architectural decisions"
+    description_ko: "아키텍처 결정을 담당하는 기술 리더"
+    mermaid_alias: "TL"
+    tags: ["actor", "lead"]
+
+  - id: "architect"
+    label: "Architect"
+    label_ko: "아키텍트"
+    type: "actor"
+    color: "#7c3aed"  # purple
+    description: "Software architect for design review"
+    description_ko: "설계 검토를 담당하는 소프트웨어 아키텍트"
+    mermaid_alias: "ARCH"
+    tags: ["actor", "architect"]
+
+  # --------------------------------------------------------------------------
+  # Teams
+  # --------------------------------------------------------------------------
+  - id: "security_team"
+    label: "Security Team"
+    label_ko: "보안팀"
+    type: "team"
+    color: "#ef4444"  # red
+    description: "Security specialists for vulnerability review"
+    description_ko: "취약점 리뷰를 담당하는 보안 전문가팀"
+    mermaid_alias: "SEC"
+    tags: ["team", "security"]
+
+  - id: "compliance_team"
+    label: "Compliance Team"
+    label_ko: "컴플라이언스팀"
+    type: "team"
+    color: "#f59e0b"  # amber
+    description: "Compliance officers for regulatory review"
+    description_ko: "규제 준수 검토를 담당하는 컴플라이언스팀"
+    mermaid_alias: "COMP"
+    tags: ["team", "compliance"]
+
+  - id: "sre_team"
+    label: "SRE Team"
+    label_ko: "SRE팀"
+    type: "team"
+    color: "#06b6d4"  # cyan
+    description: "Site Reliability Engineering team for operational review"
+    description_ko: "운영 검토를 담당하는 SRE팀"
+    mermaid_alias: "SRE"
+    tags: ["team", "operations"]
+
+  - id: "domain_expert"
+    label: "Domain Expert"
+    label_ko: "도메인 전문가"
+    type: "actor"
+    color: "#14b8a6"  # teal
+    description: "Subject matter expert for business logic review"
+    description_ko: "비즈니스 로직 검토를 담당하는 도메인 전문가"
+    mermaid_alias: "DME"
+    tags: ["actor", "expert"]
+
+  # --------------------------------------------------------------------------
+  # Artifacts
+  # --------------------------------------------------------------------------
+  - id: "pull_request"
+    label: "Pull Request"
+    label_ko: "풀 리퀘스트"
+    type: "artifact"
+    color: "#22c55e"  # green
+    description: "Code change submission for review"
+    description_ko: "리뷰를 위해 제출된 코드 변경"
+    mermaid_alias: "PR"
+    tags: ["artifact", "code"]
+
+  - id: "code_diff"
+    label: "Code Diff"
+    label_ko: "코드 변경사항"
+    type: "artifact"
+    color: "#84cc16"  # lime
+    description: "Specific code changes in the PR"
+    description_ko: "PR에 포함된 구체적인 코드 변경"
+    mermaid_alias: "DIFF"
+    tags: ["artifact", "code"]
+
+  - id: "review_comment"
+    label: "Review Comment"
+    label_ko: "리뷰 코멘트"
+    type: "artifact"
+    color: "#a3e635"  # lime-400
+    description: "Feedback comment on code"
+    description_ko: "코드에 대한 피드백 코멘트"
+    mermaid_alias: "CMT"
+    tags: ["artifact", "feedback"]
+
+  - id: "finding"
+    label: "Finding"
+    label_ko: "발견사항"
+    type: "artifact"
+    color: "#fbbf24"  # amber-400
+    description: "Issue or recommendation from review"
+    description_ko: "리뷰에서 발견된 이슈 또는 권고사항"
+    mermaid_alias: "FND"
+    tags: ["artifact", "issue"]
+
+  - id: "checklist"
+    label: "Checklist"
+    label_ko: "체크리스트"
+    type: "artifact"
+    color: "#60a5fa"  # blue-400
+    description: "Review checklist for specific tier/type"
+    description_ko: "특정 Tier/유형에 대한 리뷰 체크리스트"
+    mermaid_alias: "CKL"
+    tags: ["artifact", "checklist"]
+
+  # --------------------------------------------------------------------------
+  # Systems & Processes
+  # --------------------------------------------------------------------------
+  - id: "code_repo"
+    label: "Code Repository"
+    label_ko: "코드 저장소"
+    type: "system"
+    color: "#1f2937"  # gray-800
+    description: "Git repository (GitHub, GitLab, etc.)"
+    description_ko: "Git 저장소 (GitHub, GitLab 등)"
+    mermaid_alias: "REPO"
+    tags: ["system", "scm"]
+
+  - id: "ci_cd"
+    label: "CI/CD Pipeline"
+    label_ko: "CI/CD 파이프라인"
+    type: "system"
+    color: "#0ea5e9"  # sky
+    description: "Continuous Integration/Deployment system"
+    description_ko: "지속적 통합/배포 시스템"
+    mermaid_alias: "CI"
+    tags: ["system", "automation"]
+
+  - id: "static_analyzer"
+    label: "Static Analyzer"
+    label_ko: "정적 분석기"
+    type: "system"
+    color: "#f97316"  # orange
+    description: "Static code analysis tools (linter, SAST)"
+    description_ko: "정적 코드 분석 도구 (린터, SAST)"
+    mermaid_alias: "SAST"
+    tags: ["system", "analysis"]
+
+  - id: "test_runner"
+    label: "Test Runner"
+    label_ko: "테스트 러너"
+    type: "system"
+    color: "#22d3ee"  # cyan-400
+    description: "Automated test execution system"
+    description_ko: "자동화된 테스트 실행 시스템"
+    mermaid_alias: "TEST"
+    tags: ["system", "testing"]
+
+  - id: "security_scanner"
+    label: "Security Scanner"
+    label_ko: "보안 스캐너"
+    type: "system"
+    color: "#dc2626"  # red-600
+    description: "Security vulnerability scanner"
+    description_ko: "보안 취약점 스캐너"
+    mermaid_alias: "SCAN"
+    tags: ["system", "security"]
+
+  - id: "codeowners"
+    label: "CODEOWNERS"
+    label_ko: "CODEOWNERS"
+    type: "system"
+    color: "#64748b"  # slate
+    description: "Automatic reviewer assignment based on file paths"
+    description_ko: "파일 경로 기반 자동 리뷰어 할당"
+    mermaid_alias: "OWN"
+    tags: ["system", "automation"]
+
+  # --------------------------------------------------------------------------
+  # Classification Entities
+  # --------------------------------------------------------------------------
+  - id: "classifier"
+    label: "PR Classifier"
+    label_ko: "PR 분류기"
+    type: "process"
+    color: "#a855f7"  # purple
+    description: "Classification process for PR"
+    description_ko: "PR 분류 프로세스"
+    mermaid_alias: "CLS"
+    tags: ["process", "classification"]
+
+  - id: "tier_decision"
+    label: "Tier Decision"
+    label_ko: "Tier 결정"
+    type: "process"
+    color: "#ec4899"  # pink
+    description: "Review tier decision process"
+    description_ko: "리뷰 Tier 결정 프로세스"
+    mermaid_alias: "TIER"
+    tags: ["process", "decision"]
+
+  - id: "output_generator"
+    label: "Output Generator"
+    label_ko: "출력 생성기"
+    type: "process"
+    color: "#14b8a6"  # teal
+    description: "Review output generation process"
+    description_ko: "리뷰 결과 생성 프로세스"
+    mermaid_alias: "OUT"
+    tags: ["process", "output"]
+
+  - id: "escalation_handler"
+    label: "Escalation Handler"
+    label_ko: "에스컬레이션 핸들러"
+    type: "process"
+    color: "#f43f5e"  # rose
+    description: "Escalation routing process"
+    description_ko: "에스컬레이션 라우팅 프로세스"
+    mermaid_alias: "ESC"
+    tags: ["process", "escalation"]
+
+# ============================================================================
+# Color Palette Reference
+# ============================================================================
+# Actors (human):
+#   - blue (#3b82f6): Developer
+#   - emerald (#10b981): Reviewer
+#   - violet (#8b5cf6): Senior Reviewer
+#   - indigo (#6366f1): Tech Lead
+#   - purple (#7c3aed): Architect
+#   - teal (#14b8a6): Domain Expert
+#
+# Teams:
+#   - red (#ef4444): Security Team
+#   - amber (#f59e0b): Compliance Team
+#   - cyan (#06b6d4): SRE Team
+#
+# Artifacts:
+#   - green (#22c55e): Pull Request
+#   - lime (#84cc16): Code Diff
+#   - amber-400 (#fbbf24): Finding
+#   - blue-400 (#60a5fa): Checklist
+#
+# Systems:
+#   - gray-800 (#1f2937): Code Repository
+#   - sky (#0ea5e9): CI/CD
+#   - orange (#f97316): Static Analyzer
+#   - red-600 (#dc2626): Security Scanner
+#
+# Processes:
+#   - purple (#a855f7): Classifier
+#   - pink (#ec4899): Tier Decision
+#   - rose (#f43f5e): Escalation

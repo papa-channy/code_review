@@ -1,0 +1,383 @@
+# ============================================================================
+# CR-02: Review Depth Decision
+# ============================================================================
+# Determine review tier (1-4) based on classification results
+# Based on CLAUDE.md Section 3: Review Depth Matrix
+
+schema_version: "2.0"
+scenario_id: "CR-02"
+scenario_name: "Review Depth Decision"
+scenario_name_ko: "리뷰 깊이 결정"
+last_updated: "2026-01-24"
+
+# ============================================================================
+# Entities
+# ============================================================================
+entities:
+  - ref: "pull_request"
+  - ref: "tier_decision"
+  - ref: "reviewer"
+  - ref: "senior_reviewer"
+  - ref: "security_team"
+  - ref: "compliance_team"
+
+# ============================================================================
+# Nodes
+# ============================================================================
+nodes:
+  # Start
+  - id: "N10"
+    entity: "pull_request"
+    label: "Receive Classification"
+    label_ko: "분류 결과 수신"
+    kind: "start"
+    order: 10
+    description: "Receive classification labels from CR-01"
+    description_ko: "CR-01에서 분류 라벨 수신"
+
+  # Decision Tree
+  - id: "N20"
+    entity: "tier_decision"
+    label: "Risk == CRITICAL?"
+    label_ko: "Risk == CRITICAL?"
+    kind: "decision"
+    order: 20
+    description: "Check if risk level is CRITICAL"
+    description_ko: "위험도가 CRITICAL인지 확인"
+
+  - id: "N30"
+    entity: "tier_decision"
+    label: "Sensitivity != NONE?"
+    label_ko: "규제 적용?"
+    kind: "decision"
+    order: 30
+    description: "Check if regulatory sensitivity applies"
+    description_ko: "규제 적용 여부 확인"
+
+  - id: "N40"
+    entity: "tier_decision"
+    label: "Risk == HIGH?"
+    label_ko: "Risk == HIGH?"
+    kind: "decision"
+    order: 40
+    description: "Check if risk level is HIGH"
+    description_ko: "위험도가 HIGH인지 확인"
+
+  - id: "N50"
+    entity: "tier_decision"
+    label: "Size >= L?"
+    label_ko: "Size >= L?"
+    kind: "decision"
+    order: 50
+    description: "Check if change size is Large or above"
+    description_ko: "변경 규모가 L 이상인지 확인"
+
+  - id: "N60"
+    entity: "tier_decision"
+    label: "Risk == MEDIUM?"
+    label_ko: "Risk == MEDIUM?"
+    kind: "decision"
+    order: 60
+    description: "Check if risk level is MEDIUM"
+    description_ko: "위험도가 MEDIUM인지 확인"
+
+  - id: "N65"
+    entity: "tier_decision"
+    label: "Size == M?"
+    label_ko: "Size == M?"
+    kind: "decision"
+    order: 65
+    description: "Check if change size is Medium"
+    description_ko: "변경 규모가 M인지 확인"
+
+  # Tier Assignments
+  - id: "N21"
+    entity: "senior_reviewer"
+    label: "TIER 1: Full Deep"
+    label_ko: "TIER 1: 심층 리뷰"
+    kind: "action"
+    order: 21
+    description: "Senior 2+ reviewers + Security/Compliance team, 1-2 days"
+    description_ko: "시니어 2인 이상 + 보안/컴플라이언스팀, 1-2일"
+    meta:
+      reviewers: "Senior 2+ + Specialist Team"
+      duration: "1-2 days"
+      activities:
+        - "Line-by-line code review"
+        - "Architecture impact analysis"
+        - "Security vulnerability deep scan"
+        - "Rollback plan verification"
+
+  - id: "N41"
+    entity: "senior_reviewer"
+    label: "TIER 2: Comprehensive"
+    label_ko: "TIER 2: 종합 리뷰"
+    kind: "action"
+    order: 41
+    description: "Senior 1+ reviewer + Domain expert, 4-8 hours"
+    description_ko: "시니어 1인 이상 + 도메인 전문가, 4-8시간"
+    meta:
+      reviewers: "Senior 1 + Domain Expert"
+      duration: "4-8 hours"
+      activities:
+        - "Business logic verification"
+        - "Test coverage check"
+        - "Performance impact analysis"
+
+  - id: "N61"
+    entity: "reviewer"
+    label: "TIER 3: Standard"
+    label_ko: "TIER 3: 표준 리뷰"
+    kind: "action"
+    order: 61
+    description: "Single peer reviewer, 1-4 hours"
+    description_ko: "동료 1인 리뷰, 1-4시간"
+    meta:
+      reviewers: "1 Peer Reviewer"
+      duration: "1-4 hours"
+      activities:
+        - "Functional verification"
+        - "Code quality check"
+        - "Style compliance"
+
+  - id: "N66"
+    entity: "reviewer"
+    label: "TIER 4: Light"
+    label_ko: "TIER 4: 경량 리뷰"
+    kind: "action"
+    order: 66
+    description: "Automated checks + quick review, <30 mins"
+    description_ko: "자동화 체크 + 빠른 확인, 30분 이내"
+    meta:
+      reviewers: "Automated + Optional Quick Review"
+      duration: "<30 mins"
+      activities:
+        - "CI pipeline pass"
+        - "Basic test pass"
+        - "No obvious errors"
+
+  # End
+  - id: "N80"
+    entity: "pull_request"
+    label: "Tier Assigned"
+    label_ko: "Tier 할당 완료"
+    kind: "end"
+    order: 80
+    description: "Review tier determined, proceed to review execution"
+    description_ko: "리뷰 Tier 결정 완료, 리뷰 수행 단계로 진행"
+
+# ============================================================================
+# Edges
+# ============================================================================
+edges:
+  # Start to first decision
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "evaluate"
+    label_ko: "평가"
+    kind: "main"
+    order: 11
+
+  # CRITICAL -> TIER 1
+  - id: "E20Y"
+    source: "N20"
+    target: "N21"
+    label: "YES"
+    label_ko: "예"
+    kind: "main"
+    order: 21
+    condition: "Risk == CRITICAL"
+
+  # Not CRITICAL -> Check Sensitivity
+  - id: "E20N"
+    source: "N20"
+    target: "N30"
+    label: "NO"
+    label_ko: "아니오"
+    kind: "main"
+    order: 22
+
+  # Sensitivity -> TIER 1
+  - id: "E30Y"
+    source: "N30"
+    target: "N21"
+    label: "YES"
+    label_ko: "예"
+    kind: "main"
+    order: 31
+    condition: "SOX/PCI/HIPAA/GDPR"
+
+  # No Sensitivity -> Check HIGH
+  - id: "E30N"
+    source: "N30"
+    target: "N40"
+    label: "NO"
+    label_ko: "아니오"
+    kind: "main"
+    order: 32
+
+  # HIGH -> TIER 2
+  - id: "E40Y"
+    source: "N40"
+    target: "N41"
+    label: "YES"
+    label_ko: "예"
+    kind: "main"
+    order: 41
+    condition: "Risk == HIGH"
+
+  # Not HIGH -> Check Size
+  - id: "E40N"
+    source: "N40"
+    target: "N50"
+    label: "NO"
+    label_ko: "아니오"
+    kind: "main"
+    order: 42
+
+  # Large Size -> TIER 2
+  - id: "E50Y"
+    source: "N50"
+    target: "N41"
+    label: "YES"
+    label_ko: "예"
+    kind: "main"
+    order: 51
+    condition: "Size >= L (201+ LOC)"
+
+  # Not Large -> Check MEDIUM
+  - id: "E50N"
+    source: "N50"
+    target: "N60"
+    label: "NO"
+    label_ko: "아니오"
+    kind: "main"
+    order: 52
+
+  # MEDIUM -> TIER 3
+  - id: "E60Y"
+    source: "N60"
+    target: "N61"
+    label: "YES"
+    label_ko: "예"
+    kind: "main"
+    order: 61
+    condition: "Risk == MEDIUM"
+
+  # Not MEDIUM -> Check Size M
+  - id: "E60N"
+    source: "N60"
+    target: "N65"
+    label: "NO"
+    label_ko: "아니오"
+    kind: "main"
+    order: 62
+
+  # Size M -> TIER 3
+  - id: "E65Y"
+    source: "N65"
+    target: "N61"
+    label: "YES"
+    label_ko: "예"
+    kind: "main"
+    order: 66
+    condition: "Size == M (101-200 LOC)"
+
+  # Small/XS -> TIER 4
+  - id: "E65N"
+    source: "N65"
+    target: "N66"
+    label: "NO"
+    label_ko: "아니오"
+    kind: "main"
+    order: 67
+    condition: "Size <= S (Low Risk)"
+
+  # All tiers to end
+  - id: "E21"
+    source: "N21"
+    target: "N80"
+    label: "assigned"
+    label_ko: "할당됨"
+    kind: "main"
+    order: 81
+
+  - id: "E41"
+    source: "N41"
+    target: "N80"
+    label: "assigned"
+    label_ko: "할당됨"
+    kind: "main"
+    order: 82
+
+  - id: "E61"
+    source: "N61"
+    target: "N80"
+    label: "assigned"
+    label_ko: "할당됨"
+    kind: "main"
+    order: 83
+
+  - id: "E66"
+    source: "N66"
+    target: "N80"
+    label: "assigned"
+    label_ko: "할당됨"
+    kind: "main"
+    order: 84
+
+# ============================================================================
+# Paths
+# ============================================================================
+paths:
+  main:
+    name: "Decision Tree"
+    name_ko: "결정 트리"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N65", "N66", "N80"]
+    description: "Standard tier decision flow (default to TIER 4)"
+
+  tier1_path:
+    name: "TIER 1 Path"
+    name_ko: "TIER 1 경로"
+    nodes: ["N10", "N20", "N21", "N80"]
+    description: "Critical or regulated changes"
+
+  tier2_path:
+    name: "TIER 2 Path"
+    name_ko: "TIER 2 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N41", "N80"]
+    description: "High risk or large changes"
+
+  tier3_path:
+    name: "TIER 3 Path"
+    name_ko: "TIER 3 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N61", "N80"]
+    description: "Medium risk or medium size changes"
+
+# ============================================================================
+# Annotations
+# ============================================================================
+annotations:
+  - target: "N20"
+    type: "warning"
+    text: "When uncertain, default to higher tier"
+    text_ko: "불확실한 경우 상위 Tier로 기본 설정"
+
+  - target: "N21"
+    type: "info"
+    text: "Requires 2+ senior reviewers + specialist team"
+    text_ko: "시니어 2인 이상 + 전문팀 필요"
+
+  - target: "N66"
+    type: "info"
+    text: "Mostly automated, human review optional"
+    text_ko: "대부분 자동화, 수동 리뷰 선택적"
+
+# ============================================================================
+# Layout
+# ============================================================================
+layout:
+  direction: "TB"
+  node_spacing: 50
+  rank_spacing: 70

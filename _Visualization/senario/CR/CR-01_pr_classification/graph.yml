@@ -1,0 +1,265 @@
+# ============================================================================
+# CR-01: PR Classification
+# ============================================================================
+# Classify PR by 5 dimensions: Risk, Size, Domain, Change Type, Sensitivity
+# Based on CLAUDE.md Section 2: Classification System
+
+schema_version: "2.0"
+scenario_id: "CR-01"
+scenario_name: "PR Classification"
+scenario_name_ko: "PR 분류"
+last_updated: "2026-01-24"
+
+# ============================================================================
+# Entities
+# ============================================================================
+entities:
+  - ref: "developer"
+  - ref: "pull_request"
+  - ref: "classifier"
+  - ref: "ci_cd"
+  - ref: "static_analyzer"
+  - ref: "reviewer"
+
+# ============================================================================
+# Nodes
+# ============================================================================
+nodes:
+  # Start
+  - id: "N10"
+    entity: "developer"
+    label: "Submit PR"
+    label_ko: "PR 제출"
+    kind: "start"
+    order: 10
+    description: "Developer submits pull request for review"
+    description_ko: "개발자가 리뷰를 위해 PR을 제출"
+
+  # Classification Steps
+  - id: "N20"
+    entity: "classifier"
+    label: "Classify Risk Level"
+    label_ko: "위험도 분류"
+    kind: "action"
+    order: 20
+    description: "Classify as CRITICAL/HIGH/MEDIUM/LOW based on security, auth, payment, data impact"
+    description_ko: "보안, 인증, 결제, 데이터 영향에 따라 CRITICAL/HIGH/MEDIUM/LOW 분류"
+    meta:
+      criteria:
+        - "CRITICAL: Security, auth, payment, regulatory"
+        - "HIGH: Architecture, core domain, data integrity"
+        - "MEDIUM: General features, limited scope"
+        - "LOW: Non-functional, minimal impact"
+
+  - id: "N30"
+    entity: "classifier"
+    label: "Classify Change Size"
+    label_ko: "변경 규모 분류"
+    kind: "action"
+    order: 30
+    description: "Classify by LOC: XS(~50), S(51-100), M(101-200), L(201-500), XL(500+)"
+    description_ko: "LOC 기준 분류: XS(~50), S(51-100), M(101-200), L(201-500), XL(500+)"
+    meta:
+      criteria:
+        - "XS: ~50 LOC (Fast track)"
+        - "S: 51-100 LOC (Standard)"
+        - "M: 101-200 LOC (Deep review)"
+        - "L: 201-500 LOC (Split recommended)"
+        - "XL: 500+ LOC (Split required)"
+
+  - id: "N40"
+    entity: "classifier"
+    label: "Classify Domain Type"
+    label_ko: "도메인 분류"
+    kind: "action"
+    order: 40
+    description: "Classify as Core(5%)/Supporting(25%)/Generic(70%) based on DDD"
+    description_ko: "DDD 기반 Core(5%)/Supporting(25%)/Generic(70%) 분류"
+    meta:
+      criteria:
+        - "Core: Business competitive advantage, ~5%"
+        - "Supporting: Supports core functions, ~25%"
+        - "Generic: Replaceable, standard functions, ~70%"
+
+  - id: "N50"
+    entity: "classifier"
+    label: "Classify Change Type"
+    label_ko: "변경 유형 분류"
+    kind: "action"
+    order: 50
+    description: "Classify as Corrective/Adaptive/Perfective/Preventive (IEEE/ISO 14764)"
+    description_ko: "Corrective/Adaptive/Perfective/Preventive 분류 (IEEE/ISO 14764)"
+    meta:
+      criteria:
+        - "Corrective: Bug fix, defect repair"
+        - "Adaptive: Environment adaptation"
+        - "Perfective: Feature improvement"
+        - "Preventive: Refactoring, tech debt"
+
+  - id: "N60"
+    entity: "classifier"
+    label: "Classify Sensitivity"
+    label_ko: "규제/보안 민감도 분류"
+    kind: "action"
+    order: 60
+    description: "Check SOX/PCI-DSS/HIPAA/GDPR applicability"
+    description_ko: "SOX/PCI-DSS/HIPAA/GDPR 적용 여부 확인"
+    meta:
+      criteria:
+        - "SOX: Finance, accounting, audit"
+        - "PCI-DSS: Payment, card data"
+        - "HIPAA: Healthcare, PHI"
+        - "GDPR: Personal data, PII"
+        - "NONE: No regulations apply"
+
+  # Decision
+  - id: "N70"
+    entity: "classifier"
+    label: "Size OK?"
+    label_ko: "규모 적절?"
+    kind: "decision"
+    order: 70
+    description: "Check if PR size is acceptable (<=500 LOC recommended)"
+    description_ko: "PR 규모가 적절한지 확인 (500 LOC 이하 권장)"
+
+  # Outputs
+  - id: "N80"
+    entity: "pull_request"
+    label: "Classification Complete"
+    label_ko: "분류 완료"
+    kind: "end"
+    order: 80
+    description: "Classification labels attached to PR, ready for tier decision"
+    description_ko: "분류 라벨이 PR에 부착됨, Tier 결정 준비 완료"
+
+  - id: "N71"
+    entity: "developer"
+    label: "Request PR Split"
+    label_ko: "PR 분할 요청"
+    kind: "error"
+    order: 71
+    description: "PR too large (XL), request developer to split"
+    description_ko: "PR이 너무 큼 (XL), 개발자에게 분할 요청"
+    hidden: true
+
+# ============================================================================
+# Edges
+# ============================================================================
+edges:
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "analyze"
+    label_ko: "분석"
+    kind: "main"
+    order: 11
+
+  - id: "E20"
+    source: "N20"
+    target: "N30"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 21
+
+  - id: "E30"
+    source: "N30"
+    target: "N40"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 31
+
+  - id: "E40"
+    source: "N40"
+    target: "N50"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 41
+
+  - id: "E50"
+    source: "N50"
+    target: "N60"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 51
+
+  - id: "E60"
+    source: "N60"
+    target: "N70"
+    label: "validate"
+    label_ko: "검증"
+    kind: "main"
+    order: 61
+
+  - id: "E70"
+    source: "N70"
+    target: "N80"
+    label: "OK"
+    label_ko: "OK"
+    kind: "main"
+    order: 71
+    condition: "Size <= L"
+
+  - id: "E71"
+    source: "N70"
+    target: "N71"
+    label: "Too Large"
+    label_ko: "너무 큼"
+    kind: "exception"
+    order: 72
+    condition: "Size == XL (500+ LOC)"
+
+  - id: "E72"
+    source: "N71"
+    target: "N10"
+    label: "split & resubmit"
+    label_ko: "분할 후 재제출"
+    kind: "exception"
+    order: 73
+
+# ============================================================================
+# Paths
+# ============================================================================
+paths:
+  main:
+    name: "Happy Path"
+    name_ko: "정상 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N70", "N80"]
+    description: "Standard classification flow"
+
+  exceptions:
+    - name: "PR Too Large"
+      name_ko: "PR 규모 초과"
+      trigger_node: "N70"
+      nodes: ["N70", "N71", "N10"]
+      description: "PR exceeds recommended size, split required"
+
+# ============================================================================
+# Annotations
+# ============================================================================
+annotations:
+  - target: "N20"
+    type: "info"
+    text: "CRITICAL triggers TIER 1 automatically"
+    text_ko: "CRITICAL은 자동으로 TIER 1 트리거"
+
+  - target: "N60"
+    type: "warning"
+    text: "Regulated changes require specialized team review"
+    text_ko: "규제 대상 변경은 전문팀 리뷰 필수"
+
+  - target: "N30"
+    type: "info"
+    text: "Google recommends ~200 LOC per PR"
+    text_ko: "Google 권장: PR당 ~200줄"
+
+# ============================================================================
+# Layout
+# ============================================================================
+layout:
+  direction: "TB"
+  node_spacing: 60
+  rank_spacing: 80

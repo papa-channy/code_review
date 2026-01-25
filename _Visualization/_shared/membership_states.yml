@@ -1,0 +1,279 @@
+# ============================================================================
+# Membership & License State Machine Definitions
+# ============================================================================
+# Shared state definitions for all scenarios
+# These define the valid states and transitions
+
+schema_version: "1.0"
+
+# ============================================================================
+# Membership States (User <-> Tenant relationship)
+# ============================================================================
+membership_states:
+  states:
+    - id: "invited"
+      name: "Invited"
+      name_kr: "초대됨"
+      description: "Admin has sent invitation, awaiting user acceptance"
+      color: "#6b7280"  # gray
+      entry_actions:
+        - "Send invitation email"
+        - "Generate one-time invite token"
+        - "Log invite event"
+      valid_transitions:
+        - to: "pending_approval"
+          trigger: "user_accepts"
+          description: "User accepts invitation"
+        - to: "expired"
+          trigger: "token_expires"
+          description: "Invitation expires (typically 7 days)"
+
+    - id: "pending_approval"
+      name: "Pending Approval"
+      name_kr: "승인 대기"
+      description: "User has requested to join, awaiting admin approval"
+      color: "#f59e0b"  # amber
+      entry_actions:
+        - "Notify tenant admin(s)"
+        - "Log approval request"
+      valid_transitions:
+        - to: "active"
+          trigger: "admin_approves"
+          description: "Admin approves membership"
+        - to: "rejected"
+          trigger: "admin_rejects"
+          description: "Admin rejects membership"
+
+    - id: "active"
+      name: "Active"
+      name_kr: "활성"
+      description: "Full access granted to tenant workspace"
+      color: "#22c55e"  # green
+      entry_actions:
+        - "Grant access tokens"
+        - "Log activation event"
+        - "Notify user"
+      valid_transitions:
+        - to: "suspended"
+          trigger: "admin_suspends"
+          description: "Admin suspends user (policy violation)"
+        - to: "terminated"
+          trigger: "resignation"
+          description: "User resigns or is terminated"
+        - to: "left"
+          trigger: "user_leaves"
+          description: "User voluntarily leaves"
+
+    - id: "suspended"
+      name: "Suspended"
+      name_kr: "정지됨"
+      description: "Temporarily blocked due to security/policy violation"
+      color: "#f59e0b"  # amber
+      entry_actions:
+        - "Revoke all tokens"
+        - "Log suspension event"
+        - "Notify user and admin"
+      valid_transitions:
+        - to: "active"
+          trigger: "admin_reinstates"
+          description: "Admin reinstates user"
+        - to: "terminated"
+          trigger: "admin_terminates"
+          description: "Admin permanently terminates"
+
+    - id: "terminated"
+      name: "Terminated"
+      name_kr: "종료됨"
+      description: "Resignation or contract end - permanent"
+      color: "#ef4444"  # red
+      entry_actions:
+        - "Revoke all tokens immediately"
+        - "Reassign owned documents"
+        - "Log termination event"
+        - "Trigger data retention policy"
+      valid_transitions: []  # Terminal state
+
+    - id: "left"
+      name: "Left"
+      name_kr: "탈퇴"
+      description: "User voluntarily departed"
+      color: "#6b7280"  # gray
+      entry_actions:
+        - "Revoke all tokens"
+        - "Archive user data"
+        - "Log departure event"
+      valid_transitions: []  # Terminal state
+
+    - id: "rejected"
+      name: "Rejected"
+      name_kr: "거부됨"
+      description: "Admin rejected membership request"
+      color: "#6b7280"  # gray
+      entry_actions:
+        - "Log rejection event"
+        - "Notify user"
+      valid_transitions:
+        - to: "pending_approval"
+          trigger: "user_reapplies"
+          description: "User reapplies after rejection"
+
+    - id: "expired"
+      name: "Expired"
+      name_kr: "만료됨"
+      description: "Invitation expired without acceptance"
+      color: "#6b7280"  # gray
+      entry_actions:
+        - "Log expiry event"
+      valid_transitions:
+        - to: "invited"
+          trigger: "admin_reinvites"
+          description: "Admin sends new invitation"
+
+# ============================================================================
+# Mermaid State Diagram
+# ============================================================================
+  mermaid_diagram: |
+    stateDiagram-v2
+      [*] --> invited: Admin invites
+
+      invited --> pending_approval: User accepts
+      invited --> expired: Token expires
+
+      pending_approval --> active: Admin approves
+      pending_approval --> rejected: Admin rejects
+
+      active --> suspended: Policy violation
+      active --> terminated: Resignation
+      active --> left: User leaves
+
+      suspended --> active: Reinstated
+      suspended --> terminated: Terminated
+
+      rejected --> pending_approval: Reapply
+      expired --> invited: Reinvite
+
+      terminated --> [*]
+      left --> [*]
+
+# ============================================================================
+# License States (Tenant License status)
+# ============================================================================
+license_states:
+  states:
+    - id: "active"
+      name: "Active"
+      name_kr: "활성"
+      description: "License is valid, full functionality available"
+      color: "#22c55e"  # green
+      allowed_operations:
+        - "all"
+      valid_transitions:
+        - to: "expired"
+          trigger: "end_date_reached"
+          description: "License end date is reached"
+
+    - id: "expired"
+      name: "Expired"
+      name_kr: "만료됨"
+      description: "License expired, new auth blocked"
+      color: "#ef4444"  # red
+      allowed_operations:
+        - "read_only"
+        - "export"
+        - "admin_only"
+      blocked_operations:
+        - "new_login"
+        - "new_approval"
+        - "write_operations"
+        - "ai_features"
+      valid_transitions:
+        - to: "grace"
+          trigger: "grace_enabled"
+          description: "Grace period activated"
+        - to: "deleted"
+          trigger: "immediate_purge"
+          description: "No grace, immediate purge"
+        - to: "active"
+          trigger: "license_renewed"
+          description: "License renewed"
+
+    - id: "grace"
+      name: "Grace Period"
+      name_kr: "유예 기간"
+      description: "Temporary period for renewal/dispute resolution"
+      color: "#f59e0b"  # amber
+      duration:
+        default: 30  # days
+        options: [0, 30, 90]
+      allowed_operations:
+        - "read_only"
+        - "export"
+        - "admin_only"
+      valid_transitions:
+        - to: "deleted"
+          trigger: "grace_ends"
+          description: "Grace period ends without renewal"
+        - to: "active"
+          trigger: "license_renewed"
+          description: "License renewed during grace"
+
+    - id: "deleted"
+      name: "Deleted"
+      name_kr: "삭제됨"
+      description: "Tenant metadata purged or anonymized from central server"
+      color: "#6b7280"  # gray
+      entry_actions:
+        - "Purge central metadata"
+        - "Or anonymize for audit"
+        - "Log deletion event"
+      valid_transitions: []  # Terminal state
+
+# ============================================================================
+# Mermaid State Diagram
+# ============================================================================
+  mermaid_diagram: |
+    stateDiagram-v2
+      [*] --> active: License issued
+
+      active --> expired: End date reached
+      expired --> grace: Grace enabled
+      expired --> deleted: No grace
+      expired --> active: Renewed
+
+      grace --> deleted: Grace ends
+      grace --> active: Renewed
+
+      deleted --> [*]
+
+# ============================================================================
+# Lock Mode Operations (When license is expired/grace)
+# ============================================================================
+lock_mode:
+  description: |
+    When license expires, the tenant server enters "Lock Mode".
+    This is NOT data deletion - functionality is restricted.
+
+  allowed:
+    - operation: "read_only"
+      description: "View existing documents and data"
+    - operation: "export"
+      description: "Export data (JSON + attachments)"
+    - operation: "admin_panel"
+      description: "Access admin panel for management"
+
+  blocked:
+    - operation: "new_documents"
+      description: "Create new documents"
+    - operation: "edit_documents"
+      description: "Edit existing documents"
+    - operation: "ai_features"
+      description: "Use AI-powered features"
+    - operation: "search"
+      description: "Search functionality"
+    - operation: "new_users"
+      description: "Add new users"
+
+  customer_data_handling:
+    principle: "Customer owns their data"
+    deletion: "Customer chooses when to delete"
+    our_action: "Lock functionality, not data"

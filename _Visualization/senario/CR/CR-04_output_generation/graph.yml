@@ -1,0 +1,370 @@
+# ============================================================================
+# CR-04: Review Output Generation
+# ============================================================================
+# Generate standardized review output with findings and recommendations
+# Based on CLAUDE.md Section 5: Output Format Standards
+
+schema_version: "2.0"
+scenario_id: "CR-04"
+scenario_name: "Review Output Generation"
+scenario_name_ko: "리뷰 결과 출력"
+last_updated: "2026-01-24"
+
+# ============================================================================
+# Entities
+# ============================================================================
+entities:
+  - ref: "reviewer"
+  - ref: "finding"
+  - ref: "output_generator"
+  - ref: "pull_request"
+  - ref: "developer"
+
+# ============================================================================
+# Nodes
+# ============================================================================
+nodes:
+  # Start
+  - id: "N10"
+    entity: "finding"
+    label: "Collect Findings"
+    label_ko: "발견사항 수집"
+    kind: "start"
+    order: 10
+    description: "Gather all findings from CR-03"
+    description_ko: "CR-03에서 모든 발견사항 수집"
+
+  # Generate Summary
+  - id: "N20"
+    entity: "output_generator"
+    label: "Generate Classification Summary"
+    label_ko: "분류 요약 생성"
+    kind: "action"
+    order: 20
+    description: "Create classification table with Risk, Size, Domain, Type, Sensitivity, Tier"
+    description_ko: "Risk, Size, Domain, Type, Sensitivity, Tier 분류 테이블 생성"
+    meta:
+      template: |
+        | Item | Value |
+        |------|-------|
+        | Risk Level | [CRITICAL/HIGH/MEDIUM/LOW] |
+        | Change Size | [XS/S/M/L/XL] |
+        | Domain Type | [Core/Supporting/Generic] |
+        | Change Type | [Corrective/Adaptive/Perfective/Preventive] |
+        | Sensitivity | [SOX/PCI-DSS/HIPAA/GDPR/NONE] |
+        | Review Tier | [TIER 1/2/3/4] |
+
+  # Overall Assessment
+  - id: "N30"
+    entity: "output_generator"
+    label: "Determine Overall Assessment"
+    label_ko: "전체 평가 결정"
+    kind: "decision"
+    order: 30
+    description: "Decide APPROVE / REQUEST_CHANGES / NEEDS_DISCUSSION"
+    description_ko: "APPROVE / REQUEST_CHANGES / NEEDS_DISCUSSION 결정"
+
+  - id: "N31"
+    entity: "output_generator"
+    label: "APPROVE"
+    label_ko: "승인"
+    kind: "action"
+    order: 31
+    description: "No blocking issues, ready to merge"
+    description_ko: "블로킹 이슈 없음, 머지 준비 완료"
+
+  - id: "N32"
+    entity: "output_generator"
+    label: "REQUEST_CHANGES"
+    label_ko: "변경 요청"
+    kind: "action"
+    order: 32
+    description: "Critical/High issues found, must fix before merge"
+    description_ko: "Critical/High 이슈 발견, 머지 전 수정 필수"
+
+  - id: "N33"
+    entity: "output_generator"
+    label: "NEEDS_DISCUSSION"
+    label_ko: "논의 필요"
+    kind: "action"
+    order: 33
+    description: "Ambiguous issues requiring team discussion"
+    description_ko: "팀 논의가 필요한 모호한 이슈"
+
+  # Findings Summary
+  - id: "N40"
+    entity: "output_generator"
+    label: "Generate Findings Summary"
+    label_ko: "발견사항 요약 생성"
+    kind: "action"
+    order: 40
+    description: "Count findings by severity and category"
+    description_ko: "심각도와 카테고리별 발견사항 집계"
+    meta:
+      template: |
+        | Severity | Count | Categories |
+        |----------|-------|------------|
+        | Critical | N | [...] |
+        | High | N | [...] |
+        | Medium | N | [...] |
+        | Low | N | [...] |
+        | Info | N | [...] |
+
+  # Detailed Findings
+  - id: "N50"
+    entity: "output_generator"
+    label: "Format Detailed Findings"
+    label_ko: "상세 발견사항 포맷팅"
+    kind: "action"
+    order: 50
+    description: "Format each finding with severity, category, location, issue, recommendation"
+    description_ko: "각 발견사항을 심각도, 카테고리, 위치, 이슈, 권고사항과 함께 포맷팅"
+    meta:
+      finding_template: |
+        ### Finding #N
+        **Severity:** [CRITICAL/HIGH/MEDIUM/LOW/INFO]
+        **Category:** [Security/Logic/Performance/Reliability/Maintainability/Testing/Documentation/Style]
+        **Location:** `path/to/file.ext:line_number`
+
+        **Issue:** [Problem description]
+        **Recommendation:** [Solution suggestion]
+
+  # Severity Definitions
+  - id: "N55"
+    entity: "output_generator"
+    label: "Apply Severity Rules"
+    label_ko: "심각도 규칙 적용"
+    kind: "action"
+    order: 55
+    description: "Ensure severity definitions are consistent"
+    description_ko: "심각도 정의가 일관되도록 확인"
+    meta:
+      definitions:
+        CRITICAL: "Immediate fix required. Security vulnerability, data loss, system failure possible. BLOCKS MERGE."
+        HIGH: "Feature malfunction, severe performance degradation. Merge block recommended."
+        MEDIUM: "Potential issue, best practice violation. Conditional approval possible."
+        LOW: "Minor improvement, code style. No impact on approval."
+        INFO: "Reference, suggestion, praise. No action required."
+
+  # Category Definitions
+  - id: "N56"
+    entity: "output_generator"
+    label: "Apply Category Rules"
+    label_ko: "카테고리 규칙 적용"
+    kind: "action"
+    order: 56
+    description: "Categorize findings properly"
+    description_ko: "발견사항을 올바르게 분류"
+    meta:
+      categories:
+        Security: "XSS, SQL Injection, hardcoded secrets"
+        Logic: "Wrong conditions, boundary errors, infinite loops"
+        Performance: "N+1 queries, unnecessary loops, memory leaks"
+        Reliability: "Unhandled exceptions, null checks, resource leaks"
+        Maintainability: "High complexity, code duplication, long functions"
+        Testing: "Missing tests, insufficient coverage, broken tests"
+        Documentation: "Missing comments, outdated docs"
+        Style: "Naming, formatting, inconsistent style"
+
+  # Recommendations
+  - id: "N60"
+    entity: "output_generator"
+    label: "Generate Recommendations"
+    label_ko: "권고사항 생성"
+    kind: "action"
+    order: 60
+    description: "Provide overall recommendations and next steps"
+    description_ko: "전체 권고사항 및 다음 단계 제공"
+
+  # Final Output
+  - id: "N70"
+    entity: "output_generator"
+    label: "Compile Final Report"
+    label_ko: "최종 보고서 작성"
+    kind: "action"
+    order: 70
+    description: "Assemble all sections into final review output"
+    description_ko: "모든 섹션을 최종 리뷰 출력물로 조합"
+    meta:
+      sections:
+        - "## Code Review Summary"
+        - "### Classification"
+        - "### Overall Assessment"
+        - "### Findings Summary"
+        - "### Detailed Findings"
+        - "### Recommendations"
+
+  # End
+  - id: "N80"
+    entity: "developer"
+    label: "Deliver to Developer"
+    label_ko: "개발자에게 전달"
+    kind: "end"
+    order: 80
+    description: "Post review to PR, notify developer"
+    description_ko: "PR에 리뷰 게시, 개발자에게 알림"
+
+# ============================================================================
+# Edges
+# ============================================================================
+edges:
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "process"
+    label_ko: "처리"
+    kind: "main"
+    order: 11
+
+  - id: "E20"
+    source: "N20"
+    target: "N30"
+    label: "evaluate"
+    label_ko: "평가"
+    kind: "main"
+    order: 21
+
+  # Assessment branches
+  - id: "E30A"
+    source: "N30"
+    target: "N31"
+    label: "No blockers"
+    label_ko: "블로커 없음"
+    kind: "main"
+    order: 31
+    condition: "No CRITICAL/HIGH findings"
+
+  - id: "E30R"
+    source: "N30"
+    target: "N32"
+    label: "Has blockers"
+    label_ko: "블로커 있음"
+    kind: "alt"
+    order: 32
+    condition: "CRITICAL or HIGH findings exist"
+
+  - id: "E30D"
+    source: "N30"
+    target: "N33"
+    label: "Unclear"
+    label_ko: "불명확"
+    kind: "alt"
+    order: 33
+    condition: "Ambiguous issues"
+
+  # Merge back
+  - id: "E31"
+    source: "N31"
+    target: "N40"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 41
+
+  - id: "E32"
+    source: "N32"
+    target: "N40"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 42
+
+  - id: "E33"
+    source: "N33"
+    target: "N40"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 43
+
+  # Continue
+  - id: "E40"
+    source: "N40"
+    target: "N50"
+    label: "detail"
+    label_ko: "상세"
+    kind: "main"
+    order: 51
+
+  - id: "E50"
+    source: "N50"
+    target: "N55"
+    label: "apply"
+    label_ko: "적용"
+    kind: "main"
+    order: 56
+
+  - id: "E55"
+    source: "N55"
+    target: "N56"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 57
+
+  - id: "E56"
+    source: "N56"
+    target: "N60"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 61
+
+  - id: "E60"
+    source: "N60"
+    target: "N70"
+    label: "compile"
+    label_ko: "작성"
+    kind: "main"
+    order: 71
+
+  - id: "E70"
+    source: "N70"
+    target: "N80"
+    label: "deliver"
+    label_ko: "전달"
+    kind: "main"
+    order: 81
+
+# ============================================================================
+# Paths
+# ============================================================================
+paths:
+  main:
+    name: "Standard Output Flow"
+    name_ko: "표준 출력 흐름"
+    nodes: ["N10", "N20", "N30", "N31", "N40", "N50", "N55", "N56", "N60", "N70", "N80"]
+    description: "Standard review output generation"
+
+  request_changes:
+    name: "Request Changes Flow"
+    name_ko: "변경 요청 흐름"
+    nodes: ["N10", "N20", "N30", "N32", "N40", "N50", "N55", "N56", "N60", "N70", "N80"]
+    description: "Output when changes are required"
+
+# ============================================================================
+# Annotations
+# ============================================================================
+annotations:
+  - target: "N30"
+    type: "warning"
+    text: "CRITICAL findings always block merge"
+    text_ko: "CRITICAL 발견사항은 항상 머지 차단"
+
+  - target: "N50"
+    type: "info"
+    text: "Include file:line for easy navigation"
+    text_ko: "쉬운 탐색을 위해 file:line 포함"
+
+  - target: "N60"
+    type: "info"
+    text: "Provide actionable suggestions, not just criticism"
+    text_ko: "단순 비판이 아닌 실행 가능한 제안 제공"
+
+# ============================================================================
+# Layout
+# ============================================================================
+layout:
+  direction: "TB"
+  node_spacing: 50
+  rank_spacing: 60

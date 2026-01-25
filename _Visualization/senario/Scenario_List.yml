@@ -1,0 +1,174 @@
+# Scenario_List.yml - Code Review Pipeline Master Index
+# Generated: 2026-01-24
+# Based on: CLAUDE.md Code Review Pipeline Guide
+
+schema_version: "1.0"
+last_updated: "2026-01-24"
+
+metadata:
+  project: "Code Review Pipeline"
+  description: |
+    AI-Assisted Code Review Pipeline.
+    Systematic approach to code review with risk-based classification,
+    tier-based depth decision, and standardized output format.
+
+  actors:
+    - id: "dev"
+      name: "Developer"
+      name_kr: "개발자"
+      type: "user"
+      description: "PR author who submits code for review"
+      responsibilities:
+        - "Create and submit PR"
+        - "Respond to review feedback"
+        - "Fix issues and update code"
+
+    - id: "reviewer"
+      name: "Reviewer"
+      name_kr: "리뷰어"
+      type: "user"
+      description: "Team member who reviews the code"
+      responsibilities:
+        - "Review code changes"
+        - "Provide feedback and suggestions"
+        - "Approve or request changes"
+
+    - id: "senior"
+      name: "Senior Reviewer"
+      name_kr: "시니어 리뷰어"
+      type: "user"
+      description: "Experienced reviewer for critical changes"
+      responsibilities:
+        - "Review high-risk changes"
+        - "Architectural review"
+        - "Security review"
+        - "Mentor junior reviewers"
+
+    - id: "security"
+      name: "Security Team"
+      name_kr: "보안팀"
+      type: "team"
+      description: "Security specialists for critical security reviews"
+      responsibilities:
+        - "Security vulnerability assessment"
+        - "Compliance verification"
+        - "Security best practices enforcement"
+
+    - id: "compliance"
+      name: "Compliance Team"
+      name_kr: "컴플라이언스팀"
+      type: "team"
+      description: "Compliance officers for regulatory review"
+      responsibilities:
+        - "Regulatory compliance verification"
+        - "Audit trail maintenance"
+        - "Policy enforcement"
+
+  # Risk Levels
+  risk_levels:
+    - id: "critical"
+      description: "Security, authentication, payment, regulatory compliance"
+    - id: "high"
+      description: "Architecture, core domain, data integrity"
+    - id: "medium"
+      description: "General features, limited scope impact"
+    - id: "low"
+      description: "Non-functional changes, minimal system impact"
+
+  # Review Tiers
+  review_tiers:
+    - id: "tier1"
+      name: "Full Deep"
+      description: "Senior 2+ + Security/Compliance team review"
+    - id: "tier2"
+      name: "Comprehensive"
+      description: "Senior 1+ + Domain expert review"
+    - id: "tier3"
+      name: "Standard"
+      description: "Single peer review"
+    - id: "tier4"
+      name: "Light"
+      description: "Automated checks + quick review"
+
+# =============================================================================
+# FLOW CR: Code Review Pipeline (5 scenarios)
+# =============================================================================
+flows:
+  - id: "CR"
+    name: "Code Review Pipeline"
+    name_kr: "코드 리뷰 파이프라인"
+    description: "Systematic code review process from PR submission to approval"
+    actors: ["dev", "reviewer", "senior", "security", "compliance"]
+
+    scenarios:
+      - id: "CR-01"
+        name: "pr_classification"
+        title: "PR Classification"
+        title_kr: "PR 분류"
+        description: "Classify PR by risk level, size, domain, change type, and sensitivity"
+        status: "implemented"
+        priority: "critical"
+        tags: ["classification", "triage", "risk"]
+        actors: ["dev", "reviewer"]
+        files:
+          graph: "CR-01_pr_classification/graph.yml"
+
+      - id: "CR-02"
+        name: "depth_decision"
+        title: "Review Depth Decision"
+        title_kr: "리뷰 깊이 결정"
+        description: "Determine review tier (1-4) based on classification results"
+        status: "implemented"
+        priority: "critical"
+        tags: ["depth", "tier", "decision"]
+        actors: ["reviewer"]
+        files:
+          graph: "CR-02_depth_decision/graph.yml"
+
+      - id: "CR-03"
+        name: "review_execution"
+        title: "Review Execution"
+        title_kr: "리뷰 수행"
+        description: "Execute tier-specific and change-type-specific checklists"
+        status: "implemented"
+        priority: "critical"
+        tags: ["review", "checklist", "execution"]
+        actors: ["reviewer", "senior", "security", "compliance"]
+        files:
+          graph: "CR-03_review_execution/graph.yml"
+
+      - id: "CR-04"
+        name: "output_generation"
+        title: "Review Output Generation"
+        title_kr: "리뷰 결과 출력"
+        description: "Generate standardized review output with findings and recommendations"
+        status: "implemented"
+        priority: "high"
+        tags: ["output", "findings", "report"]
+        actors: ["reviewer"]
+        files:
+          graph: "CR-04_output_generation/graph.yml"
+
+      - id: "CR-05"
+        name: "escalation"
+        title: "Escalation Process"
+        title_kr: "에스컬레이션 프로세스"
+        description: "Handle uncertain classifications and escalate to appropriate teams"
+        status: "implemented"
+        priority: "high"
+        tags: ["escalation", "uncertainty", "team"]
+        actors: ["reviewer", "senior", "security", "compliance"]
+        files:
+          graph: "CR-05_escalation/graph.yml"
+
+# Status Legend
+# - draft: Initial creation, not reviewed
+# - review: Under review by stakeholders
+# - approved: Approved for implementation
+# - implemented: Fully implemented
+
+# Priority Legend
+# - critical: Must be implemented first, blocking
+# - high: Important for MVP
+# - medium: Nice to have for MVP
+# - low: Can be deferred

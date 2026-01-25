@@ -1,0 +1,237 @@
+# ============================================================================
+# Actor Definitions - Code Review Pipeline
+# ============================================================================
+# Shared actor definitions for all scenarios
+# Referenced from Scenario_List.yml and individual diagrams
+
+schema_version: "1.0"
+
+# ============================================================================
+# Human Actors
+# ============================================================================
+actors:
+  # Developer
+  - id: "dev"
+    name: "Developer"
+    name_kr: "개발자"
+    type: "user"
+    owner: "team"
+    description: |
+      PR author who creates and submits code changes for review.
+      Responsible for writing code, tests, and documentation.
+
+    responsibilities:
+      - "Create feature/fix branches"
+      - "Write code following team standards"
+      - "Write unit tests"
+      - "Submit PR with proper description"
+      - "Respond to review feedback"
+      - "Fix issues and update code"
+
+    mermaid_participant: "DEV as Developer"
+
+  # Reviewer
+  - id: "reviewer"
+    name: "Reviewer"
+    name_kr: "리뷰어"
+    type: "user"
+    owner: "team"
+    description: |
+      Team member who reviews submitted code changes.
+      Provides feedback, suggestions, and approval decisions.
+
+    responsibilities:
+      - "Review code changes"
+      - "Verify functionality and logic"
+      - "Check code quality and style"
+      - "Provide constructive feedback"
+      - "Approve or request changes"
+
+    mermaid_participant: "REV as Reviewer"
+
+  # Senior Reviewer
+  - id: "senior"
+    name: "Senior Reviewer"
+    name_kr: "시니어 리뷰어"
+    type: "user"
+    owner: "team"
+    description: |
+      Experienced reviewer for critical or complex changes.
+      Handles architecture, security, and high-risk reviews.
+
+    responsibilities:
+      - "Review high-risk/critical changes"
+      - "Architectural review"
+      - "Security assessment"
+      - "Performance review"
+      - "Mentor junior reviewers"
+      - "Final approval for Tier 1/2"
+
+    mermaid_participant: "SR as Senior Reviewer"
+
+  # Tech Lead
+  - id: "tech_lead"
+    name: "Tech Lead"
+    name_kr: "테크 리드"
+    type: "user"
+    owner: "team"
+    description: |
+      Technical leader responsible for architectural decisions
+      and resolving conflicts in review opinions.
+
+    responsibilities:
+      - "Final architectural decisions"
+      - "Resolve reviewer conflicts"
+      - "Define coding standards"
+      - "Strategic technical direction"
+
+    mermaid_participant: "TL as Tech Lead"
+
+  # Architect
+  - id: "architect"
+    name: "Architect"
+    name_kr: "아키텍트"
+    type: "user"
+    owner: "organization"
+    description: |
+      Software architect for cross-team design review
+      and system-wide architectural decisions.
+
+    responsibilities:
+      - "Cross-team impact review"
+      - "System-wide architecture"
+      - "Design pattern guidance"
+      - "API contract review"
+
+    mermaid_participant: "ARCH as Architect"
+
+# ============================================================================
+# Teams
+# ============================================================================
+
+  # Security Team
+  - id: "security"
+    name: "Security Team"
+    name_kr: "보안팀"
+    type: "team"
+    owner: "organization"
+    description: |
+      Security specialists for vulnerability review.
+      Required for CRITICAL risk and regulated changes.
+
+    responsibilities:
+      - "Security vulnerability assessment"
+      - "OWASP Top 10 verification"
+      - "Encryption review"
+      - "Auth/AuthZ review"
+      - "PCI-DSS compliance check"
+
+    mermaid_participant: "SEC as Security Team"
+
+  # Compliance Team
+  - id: "compliance"
+    name: "Compliance Team"
+    name_kr: "컴플라이언스팀"
+    type: "team"
+    owner: "organization"
+    description: |
+      Compliance officers for regulatory review.
+      Handles SOX, HIPAA, GDPR requirements.
+
+    responsibilities:
+      - "Regulatory compliance verification"
+      - "SOX control verification"
+      - "GDPR/HIPAA data handling"
+      - "Audit trail maintenance"
+      - "Policy enforcement"
+
+    mermaid_participant: "COMP as Compliance Team"
+
+  # SRE Team
+  - id: "sre"
+    name: "SRE Team"
+    name_kr: "SRE팀"
+    type: "team"
+    owner: "organization"
+    description: |
+      Site Reliability Engineering team.
+      Reviews operational impact and reliability.
+
+    responsibilities:
+      - "Performance impact review"
+      - "Monitoring/alerting setup"
+      - "Deployment strategy review"
+      - "Rollback plan verification"
+      - "Infrastructure review"
+
+    mermaid_participant: "SRE as SRE Team"
+
+# ============================================================================
+# Actor Relationships
+# ============================================================================
+relationships:
+  - from: "dev"
+    to: "reviewer"
+    type: "submits_to"
+    description: "Developer submits PR to Reviewer"
+
+  - from: "reviewer"
+    to: "senior"
+    type: "escalates_to"
+    description: "Reviewer escalates complex issues to Senior"
+
+  - from: "senior"
+    to: "security"
+    type: "consults"
+    description: "Senior consults Security Team for security issues"
+
+  - from: "senior"
+    to: "compliance"
+    type: "consults"
+    description: "Senior consults Compliance Team for regulated changes"
+
+  - from: "tech_lead"
+    to: "architect"
+    type: "escalates_to"
+    description: "Tech Lead escalates to Architect for system-wide impact"
+
+# ============================================================================
+# Review Tier → Actor Mapping
+# ============================================================================
+tier_assignments:
+  tier1:
+    name: "Full Deep Review"
+    required_actors: ["senior", "senior"]  # 2 seniors
+    optional_actors: ["security", "compliance"]
+    description: "Senior 2+ + Security/Compliance team"
+
+  tier2:
+    name: "Comprehensive Review"
+    required_actors: ["senior"]
+    optional_actors: ["domain_expert"]
+    description: "Senior 1 + Domain expert"
+
+  tier3:
+    name: "Standard Review"
+    required_actors: ["reviewer"]
+    optional_actors: []
+    description: "Single peer review"
+
+  tier4:
+    name: "Light Review"
+    required_actors: []  # Automated only
+    optional_actors: ["reviewer"]
+    description: "Automated checks + optional quick review"
+
+# ============================================================================
+# Mermaid Participant Aliases
+# ============================================================================
+mermaid_aliases:
+  developer: "DEV as Developer"
+  reviewer: "REV as Reviewer"
+  senior_reviewer: "SR as Senior Reviewer"
+  tech_lead: "TL as Tech Lead"
+  architect: "ARCH as Architect"
+  security_team: "SEC as Security Team"
+  compliance_team: "COMP as Compliance Team"
+  sre_team: "SRE as SRE Team"

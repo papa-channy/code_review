@@ -1,0 +1,202 @@
+# ============================================================================
+# Graph IR Template - Process Graph Model
+# ============================================================================
+# This is the SINGLE SOURCE OF TRUTH (SSOT) for scenario visualization.
+# Mermaid diagrams are auto-generated from this file.
+#
+# Copy this template to your scenario folder as `graph.yml`
+# ============================================================================
+
+schema_version: "2.0"
+scenario_id: "{SCENARIO_ID}"
+scenario_name: "{SCENARIO_NAME}"
+scenario_name_ko: "{SCENARIO_NAME_KO}"
+last_updated: "{DATE}"
+
+# ============================================================================
+# Entities (Actors/Systems - these become swim lanes or clusters)
+# ============================================================================
+# RECOMMENDED: Use 'ref' to reference entities from _shared/entities.yml (SSOT)
+# This ensures consistent colors, labels, and types across all scenarios.
+#
+# Available shared entities (see _shared/entities.yml for full list):
+#   - user              Generic user
+#   - b2b_user          B2B User (3)
+#   - individual_user   Individual User (4)
+#   - tenant_admin      Tenant Admin
+#   - our_license       License Server (1-1)
+#   - our_consumer      Consumer Server (1-2)
+#   - tenant_server     Tenant Server (2)
+#   - frontend          Frontend (Next.js)
+#   - backend           Backend (FastAPI)
+#   - gateway           API Gateway
+#   - database          PostgreSQL
+#   - redis             Redis
+#   - vault             Vault (credentials)
+#   - qdrant            Qdrant (vectors)
+#   - google            Google OAuth
+#   - microsoft         Microsoft OAuth
+#   - company_idp       Company IdP (SSO)
+#   - llm_provider      LLM Provider
+#
+# Two ways to define entities:
+#
+# 1. Reference (RECOMMENDED) - uses shared entity definition
+#    - ref: "backend"
+#
+# 2. Inline (for custom/one-off entities)
+#    - id: "custom_service"
+#      label: "Custom Service"
+#      label_ko: "커스텀 서비스"
+#      type: "system"
+#      color: "#3b82f6"
+
+entities:
+  # Reference shared entities (recommended)
+  - ref: "user"
+  - ref: "frontend"
+  - ref: "backend"
+  - ref: "database"
+
+  # Custom entity (inline definition - use sparingly)
+  - id: "custom_external"
+    label: "External API"
+    label_ko: "외부 API"
+    type: "external"
+    color: "#64748b"
+
+# ============================================================================
+# Nodes (Steps/Actions in the process)
+# ============================================================================
+# Each node represents a discrete step in the process.
+#
+# kind:
+#   - action:    Normal action/step
+#   - decision:  Decision point (diamond shape)
+#   - start:     Entry point
+#   - end:       Terminal state
+#   - wait:      Waiting/async state
+#   - error:     Error state
+#
+# order:
+#   - Sequential number for "reading order"
+#   - Main path: 10, 20, 30... (gaps allow insertions)
+#   - Exception branches: 21, 22, 31, 32...
+
+nodes:
+  - id: "N10"
+    entity: "entity_1"
+    label: "First Step"
+    kind: "start"
+    order: 10
+    description: "Optional detailed description"
+    meta:
+      evidence: ["checklist:SEC-001"]
+      api: "POST /api/v1/action"
+
+  - id: "N20"
+    entity: "entity_2"
+    label: "Process Request"
+    kind: "action"
+    order: 20
+
+  - id: "N30"
+    entity: "entity_2"
+    label: "Decision Point"
+    kind: "decision"
+    order: 30
+
+  - id: "N40"
+    entity: "entity_1"
+    label: "Success End"
+    kind: "end"
+    order: 40
+
+  - id: "N31"
+    entity: "entity_1"
+    label: "Error Handler"
+    kind: "error"
+    order: 31
+    hidden: true            # Hidden by default (exception path)
+
+# ============================================================================
+# Edges (Transitions between nodes)
+# ============================================================================
+# Each edge represents a transition/flow between steps.
+#
+# kind:
+#   - main:       Primary/happy path (bold, highlighted)
+#   - exception:  Error/exception path (dashed, initially hidden)
+#   - background: Async/background process (dotted)
+#   - alt:        Alternative path
+
+edges:
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "submit"
+    kind: "main"
+    order: 11
+
+  - id: "E20"
+    source: "N20"
+    target: "N30"
+    label: "validate"
+    kind: "main"
+    order: 21
+    meta:
+      rule: "Business rule description"
+
+  - id: "E30"
+    source: "N30"
+    target: "N40"
+    label: "success"
+    kind: "main"
+    order: 31
+    condition: "validation passed"
+
+  - id: "E31"
+    source: "N30"
+    target: "N31"
+    label: "failure"
+    kind: "exception"
+    order: 32
+    condition: "validation failed"
+
+# ============================================================================
+# Paths (Named sequences for navigation)
+# ============================================================================
+# Explicitly define the main path and exception branches.
+# This enables "sequential reading" mode in the viewer.
+
+paths:
+  main:
+    name: "Happy Path"
+    nodes: ["N10", "N20", "N30", "N40"]
+    description: "Standard successful flow"
+
+  exceptions:
+    - name: "Validation Error"
+      trigger_node: "N30"
+      nodes: ["N30", "N31"]
+      description: "Handles validation failures"
+
+# ============================================================================
+# Annotations (Optional notes/comments)
+# ============================================================================
+annotations:
+  - target: "N20"
+    type: "warning"
+    text: "Rate limited to 100 req/min"
+
+  - target: "E30"
+    type: "info"
+    text: "Triggers webhook notification"
+
+# ============================================================================
+# Layout hints (Optional)
+# ============================================================================
+layout:
+  direction: "LR"           # LR (left-right, 권장) | TB (top-bottom)
+  node_spacing: 60
+  rank_spacing: 100
