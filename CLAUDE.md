@@ -4,8 +4,8 @@
 
 | 항목 | 내용 |
 |------|------|
-| **버전** | 1.0.0 |
-| **최종 업데이트** | 2026-01-24 |
+| **버전** | 1.1.0 |
+| **최종 업데이트** | 2026-01-26 |
 | **참조 문서** | `research/classification.md`, `research/backend_cleancode.md` |
 | **언어** | 한국어 |
 | **용도** | Claude AI 코드 리뷰 수행 가이드 |
@@ -480,6 +480,184 @@ PR을 다음 5가지 축으로 분류합니다.
 - **라벨링**: 위험도/Tier 자동 라벨 부착
 - **Branch Protection**: Tier별 승인 규칙 적용
 
+### 8.4 정량적 복잡도 기준
+
+#### 순환 복잡도 (Cyclomatic Complexity) 기준
+
+| CC 범위 | 위험 등급 | 리뷰 권고 |
+|---------|-----------|-----------|
+| **1-10** | LOW | 표준 리뷰 |
+| **11-15** | MEDIUM | 주의 리뷰, 복잡도 개선 권고 |
+| **16-25** | HIGH | 심층 리뷰, 리팩토링 권고 |
+| **26+** | CRITICAL | 리팩토링 필수, 분할 필요 |
+
+#### 인지 복잡도 (Cognitive Complexity) 기준
+
+| CogC 범위 | 위험 등급 | 조치 |
+|-----------|-----------|------|
+| **0-10** | LOW | 양호 |
+| **11-20** | MEDIUM | 개선 고려 |
+| **21-30** | HIGH | 개선 권고 |
+| **31+** | CRITICAL | 즉시 개선 필요 |
+
+#### 결합도 기준
+
+| 지표 | 권장 범위 | 경고 수준 |
+|------|-----------|-----------|
+| **Afferent Coupling (Ca)** | 0-10 | 20+ 시 변경 영향도 검토 필수 |
+| **Efferent Coupling (Ce)** | 0-10 | 15+ 시 의존성 검토 필요 |
+| **Instability (Ce/(Ca+Ce))** | 0.3-0.7 | 0, 1에 가까우면 설계 검토 |
+
+---
+
+## 9. 자동 분류 기준 (Auto-Classification Criteria)
+
+### 9.1 Risk Level 자동 판단
+
+#### 경로 패턴 기반 분류
+
+| Risk Level | 경로 패턴 (정규식) |
+|------------|-------------------|
+| **CRITICAL** | `auth/`, `security/`, `payment/`, `crypto/`, `pii/`, `secret/`, `credential/` |
+| **HIGH** | `core/`, `domain/`, `api/`, `db/`, `schema/`, `migration/`, `transaction/` |
+| **MEDIUM** | `feature/`, `service/`, `handler/`, `controller/`, `repository/` |
+| **LOW** | `docs/`, `test/`, `spec/`, `config/`, `readme`, `.md`, `mock/` |
+
+#### 키워드 기반 분류
+
+| Risk Level | 코드/커밋 키워드 |
+|------------|-----------------|
+| **CRITICAL** | `password`, `token`, `secret`, `encrypt`, `decrypt`, `apikey`, `credential`, `private_key`, `certificate` |
+| **HIGH** | `transaction`, `migration`, `contract`, `interface`, `schema`, `breaking_change` |
+| **MEDIUM** | `feature`, `add`, `update`, `modify` |
+| **LOW** | `doc`, `comment`, `typo`, `style`, `format`, `readme` |
+
+### 9.2 Change Type 자동 판단
+
+#### 커밋 메시지/PR 제목 키워드
+
+| Change Type | 키워드 패턴 |
+|-------------|------------|
+| **Corrective** | `fix`, `bug`, `hotfix`, `patch`, `resolve`, `issue`, `error`, `defect`, `crash` |
+| **Adaptive** | `upgrade`, `migrate`, `update dependency`, `version`, `compatibility`, `bump`, `renovate` |
+| **Perfective** | `feat`, `feature`, `add`, `implement`, `enhance`, `improve`, `optimize`, `perf` |
+| **Preventive** | `refactor`, `restructure`, `cleanup`, `tech debt`, `reorganize`, `chore`, `rename` |
+
+### 9.3 Sensitivity 자동 판단
+
+#### 규제별 경로/키워드
+
+| Sensitivity | 경로 패턴 | 키워드 |
+|-------------|-----------|--------|
+| **SOX** | `finance/`, `audit/`, `accounting/`, `journal/` | `audit`, `financial`, `accounting`, `ledger`, `fiscal` |
+| **PCI-DSS** | `payment/`, `checkout/`, `billing/`, `card/` | `card`, `payment`, `pan`, `cvv`, `checkout`, `stripe`, `paypal` |
+| **HIPAA** | `health/`, `medical/`, `patient/`, `clinical/` | `patient`, `medical`, `health`, `phi`, `diagnosis`, `prescription` |
+| **GDPR** | `user/`, `privacy/`, `consent/`, `personal/` | `personal`, `pii`, `consent`, `user_data`, `privacy`, `gdpr`, `data_subject` |
+
+### 9.4 Domain 자동 판단
+
+#### 경로 기반 힌트
+
+| Domain | 경로 패턴 예시 |
+|--------|---------------|
+| **Core** | `domain/`, `core/`, `business/`, `{product-specific-name}/` |
+| **Supporting** | `service/`, `adapter/`, `integration/`, `notification/`, `email/`, `sms/` |
+| **Generic** | `util/`, `utils/`, `common/`, `lib/`, `helper/`, `infrastructure/`, `shared/` |
+
+#### 판단 보조 질문 (자동화 불가 시 수동 확인)
+
+1. 이 코드가 없으면 비즈니스가 성립 불가능한가? → **Core**
+2. 핵심 기능을 직접 지원하는가? → **Supporting**
+3. 범용적이며 외부 라이브러리로 대체 가능한가? → **Generic**
+
+---
+
+## 10. 완성도 평가 기준 (Completeness Evaluation Criteria)
+
+### 10.1 영역별 점수 산정 기준
+
+#### 기능 완성도 (25점 만점)
+
+| 점수 | 기준 |
+|------|------|
+| **25** | 모든 요구사항 완벽 충족, 엣지 케이스 처리 완료 |
+| **20** | 핵심 요구사항 충족, 일부 엣지 케이스 미처리 |
+| **15** | 주요 기능 동작, 일부 시나리오 미완성 |
+| **10** | 기본 기능만 동작, 상당 부분 미완성 |
+| **5** | 기능 불완전, 주요 시나리오 실패 |
+| **0** | 기능 미동작 |
+
+#### 코드 품질 (25점 만점)
+
+| 점수 | 기준 |
+|------|------|
+| **25** | 클린 코드, 적절한 추상화, 높은 가독성, SOLID 준수 |
+| **20** | 전반적으로 양호, 사소한 개선점 존재 |
+| **15** | 평균 수준, MEDIUM 이하 품질 이슈 존재 |
+| **10** | 가독성/유지보수성 문제 다수 |
+| **5** | 심각한 코드 스멜, 복잡도 과다 |
+| **0** | 이해 불가능한 코드 |
+
+#### 테스트 커버리지 (25점 만점)
+
+| 점수 | 기준 |
+|------|------|
+| **25** | 커버리지 80%+, 핵심 경로 및 엣지 케이스 테스트 완료 |
+| **20** | 커버리지 60-79%, 주요 경로 테스트 완료 |
+| **15** | 커버리지 40-59%, 기본 테스트 존재 |
+| **10** | 커버리지 20-39%, 테스트 부족 |
+| **5** | 커버리지 20% 미만, 최소 테스트만 존재 |
+| **0** | 테스트 없음 또는 테스트 실패 |
+
+#### 보안/안정성 (25점 만점)
+
+| 점수 | 기준 |
+|------|------|
+| **25** | 보안 취약점 없음, 완벽한 에러 핸들링, 입력 검증 완료 |
+| **20** | 보안 양호, 사소한 개선점 존재 |
+| **15** | 경미한 보안/안정성 이슈, 수정 권고 |
+| **10** | 보안/안정성 우려 다수, 수정 필요 |
+| **5** | 심각한 보안 취약점 또는 불안정성 |
+| **0** | 보안 취약점 또는 시스템 장애 가능 |
+
+### 10.2 전체 평가 기준
+
+| 총점 범위 | 평가 | 의미 | 조치 |
+|-----------|------|------|------|
+| **80-100** | `PRODUCTION_READY` | 운영 배포 가능 | 승인 |
+| **60-79** | `NEEDS_WORK` | 수정 후 재리뷰 필요 | 수정 요청 |
+| **0-59** | `NOT_READY` | 상당한 작업 필요 | 반려/재작업 |
+
+### 10.3 Finding Severity별 감점 규칙
+
+| Finding Severity | 감점 | 비고 |
+|------------------|------|------|
+| **CRITICAL** | 자동 `NOT_READY` | 점수와 무관하게 차단 |
+| **HIGH** | -10점 (개당) | 2개 이상 시 `NEEDS_WORK` 이하 |
+| **MEDIUM** | -3점 (개당) | - |
+| **LOW** | -1점 (개당) | - |
+| **INFO** | 0점 | 감점 없음 |
+
+### 10.4 상태 아이콘 기준
+
+| 점수 범위 | 아이콘 | 의미 |
+|-----------|--------|------|
+| **20-25** | ✅ | 양호 |
+| **15-19** | ⚠️ | 주의 필요 |
+| **0-14** | ❌ | 개선 필요 |
+
+### 10.5 완성도 리포트 필수 항목
+
+리뷰 완료 시 아래 항목을 포함한 완성도 리포트를 생성합니다:
+
+1. **분류 요약**: 5축 분류 결과 + Review Tier
+2. **완성도 평가**: 전체 평가(PRODUCTION_READY/NEEDS_WORK/NOT_READY), 총점, 영역별 점수
+3. **발견 사항 요약**: Severity별 Count 및 Categories
+4. **상세 Findings**: 개별 Finding 상세 내용
+5. **운영 가능성 판단**: 결론, 근거, 필수/권장 수정 사항
+
+> **상세 템플릿**: `__Prompt/Report_Template.md` 참조
+
 ---
 
 ## 변경 이력
@@ -487,3 +665,4 @@ PR을 다음 5가지 축으로 분류합니다.
 | 버전 | 날짜 | 변경 내용 |
 |------|------|-----------|
 | 1.0.0 | 2026-01-24 | 최초 작성 |
+| 1.1.0 | 2026-01-26 | 정량적 복잡도 기준(8.4), 자동 분류 기준(9), 완성도 평가 기준(10) 추가 |

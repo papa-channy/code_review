@@ -11,7 +11,7 @@
 # ============================================================================
 
 schema_version: "2.0"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 # ============================================================================
 # Entity Types
@@ -304,6 +304,56 @@ entities:
     mermaid_alias: "ESC"
     tags: ["process", "escalation"]
 
+  - id: "auto_classifier"
+    label: "Auto Classifier"
+    label_ko: "자동 분류기"
+    type: "process"
+    color: "#8b5cf6"  # violet
+    description: "Automatic classification based on path patterns and keywords"
+    description_ko: "경로 패턴과 키워드 기반 자동 분류"
+    mermaid_alias: "ACLS"
+    tags: ["process", "classification", "automation"]
+
+  - id: "completeness_evaluator"
+    label: "Completeness Evaluator"
+    label_ko: "완성도 평가기"
+    type: "process"
+    color: "#06b6d4"  # cyan
+    description: "Evaluate code completeness and production readiness"
+    description_ko: "코드 완성도 및 운영 준비 상태 평가"
+    mermaid_alias: "EVAL"
+    tags: ["process", "evaluation", "quality"]
+
+  - id: "completeness_report"
+    label: "Completeness Report"
+    label_ko: "완성도 리포트"
+    type: "artifact"
+    color: "#22d3ee"  # cyan-400
+    description: "Report with scores and production readiness assessment"
+    description_ko: "점수 및 운영 준비 상태 평가가 포함된 리포트"
+    mermaid_alias: "CRPT"
+    tags: ["artifact", "report", "evaluation"]
+
+  - id: "path_pattern"
+    label: "Path Pattern"
+    label_ko: "경로 패턴"
+    type: "artifact"
+    color: "#a78bfa"  # violet-400
+    description: "File path patterns for auto-classification"
+    description_ko: "자동 분류를 위한 파일 경로 패턴"
+    mermaid_alias: "PATH"
+    tags: ["artifact", "pattern", "classification"]
+
+  - id: "keyword_pattern"
+    label: "Keyword Pattern"
+    label_ko: "키워드 패턴"
+    type: "artifact"
+    color: "#c084fc"  # purple-400
+    description: "Code/commit keywords for auto-classification"
+    description_ko: "자동 분류를 위한 코드/커밋 키워드"
+    mermaid_alias: "KWD"
+    tags: ["artifact", "pattern", "classification"]
+
 # ============================================================================
 # Color Palette Reference
 # ============================================================================
@@ -336,3 +386,10 @@ entities:
 #   - purple (#a855f7): Classifier
 #   - pink (#ec4899): Tier Decision
 #   - rose (#f43f5e): Escalation
+#   - violet (#8b5cf6): Auto Classifier
+#   - cyan (#06b6d4): Completeness Evaluator
+#
+# New Artifacts:
+#   - cyan-400 (#22d3ee): Completeness Report
+#   - violet-400 (#a78bfa): Path Pattern
+#   - purple-400 (#c084fc): Keyword Pattern

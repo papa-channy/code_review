@@ -8,7 +8,7 @@ schema_version: "2.0"
 scenario_id: "CR-02"
 scenario_name: "Review Depth Decision"
 scenario_name_ko: "리뷰 깊이 결정"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 # ============================================================================
 # Entities

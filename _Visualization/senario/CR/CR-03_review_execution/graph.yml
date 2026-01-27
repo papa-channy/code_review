@@ -8,7 +8,7 @@ schema_version: "2.0"
 scenario_id: "CR-03"
 scenario_name: "Review Execution"
 scenario_name_ko: "리뷰 수행"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 # ============================================================================
 # Entities

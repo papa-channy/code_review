@@ -3,12 +3,13 @@
 # ============================================================================
 # Generate standardized review output with findings and recommendations
 # Based on CLAUDE.md Section 5: Output Format Standards
+# Extended by: CR-07 for Completeness Evaluation (CLAUDE.md Section 10)
 
 schema_version: "2.0"
 scenario_id: "CR-04"
 scenario_name: "Review Output Generation"
 scenario_name_ko: "리뷰 결과 출력"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 # ============================================================================
 # Entities
@@ -360,6 +361,11 @@ annotations:
     type: "info"
     text: "Provide actionable suggestions, not just criticism"
     text_ko: "단순 비판이 아닌 실행 가능한 제안 제공"
+
+  - target: "N70"
+    type: "info"
+    text: "For completeness scoring (0-100), see CR-07"
+    text_ko: "완성도 점수(0-100) 산정은 CR-07 참조"
 
 # ============================================================================
 # Layout

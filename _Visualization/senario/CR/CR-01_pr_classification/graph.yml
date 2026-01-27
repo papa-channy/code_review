@@ -3,12 +3,13 @@
 # ============================================================================
 # Classify PR by 5 dimensions: Risk, Size, Domain, Change Type, Sensitivity
 # Based on CLAUDE.md Section 2: Classification System
+# See also: CR-06 for Auto-Classification (CLAUDE.md Section 9)
 
 schema_version: "2.0"
 scenario_id: "CR-01"
 scenario_name: "PR Classification"
 scenario_name_ko: "PR 분류"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 # ============================================================================
 # Entities
@@ -255,6 +256,11 @@ annotations:
     type: "info"
     text: "Google recommends ~200 LOC per PR"
     text_ko: "Google 권장: PR당 ~200줄"
+
+  - target: "N20"
+    type: "info"
+    text: "Auto-classification available via CR-06 (path patterns, keywords)"
+    text_ko: "CR-06을 통한 자동 분류 가능 (경로 패턴, 키워드)"
 
 # ============================================================================
 # Layout

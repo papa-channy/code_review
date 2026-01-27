@@ -1,0 +1,468 @@
+# ============================================================================
+# CR-07: Completeness Evaluation
+# ============================================================================
+# Evaluate code completeness and production readiness
+# Based on CLAUDE.md Section 10: Completeness Evaluation Criteria
+#
+# This scenario extends CR-04 by adding quantitative scoring and
+# production readiness assessment.
+
+schema_version: "2.0"
+scenario_id: "CR-07"
+scenario_name: "Completeness Evaluation"
+scenario_name_ko: "완성도 평가"
+last_updated: "2026-01-26"
+
+# ============================================================================
+# Entities
+# ============================================================================
+entities:
+  - ref: "finding"
+  - ref: "completeness_evaluator"
+  - ref: "completeness_report"
+  - ref: "pull_request"
+  - ref: "developer"
+  - ref: "reviewer"
+
+# ============================================================================
+# Nodes
+# ============================================================================
+nodes:
+  # Start
+  - id: "N10"
+    entity: "finding"
+    label: "Collect Review Results"
+    label_ko: "리뷰 결과 수집"
+    kind: "start"
+    order: 10
+    description: "Gather all findings from review execution (CR-03)"
+    description_ko: "리뷰 수행(CR-03)에서 모든 발견사항 수집"
+
+  # Area Scoring
+  - id: "N20"
+    entity: "completeness_evaluator"
+    label: "Evaluate Functionality"
+    label_ko: "기능 완성도 평가"
+    kind: "action"
+    order: 20
+    description: "Score functionality completeness (0-25 points)"
+    description_ko: "기능 완성도 점수 산정 (0-25점)"
+    meta:
+      scoring:
+        25: "All requirements met, edge cases handled"
+        20: "Core requirements met, some edge cases missing"
+        15: "Main features work, some scenarios incomplete"
+        10: "Basic features only, significant gaps"
+        5: "Incomplete functionality, major scenarios fail"
+        0: "Non-functional"
+
+  - id: "N30"
+    entity: "completeness_evaluator"
+    label: "Evaluate Code Quality"
+    label_ko: "코드 품질 평가"
+    kind: "action"
+    order: 30
+    description: "Score code quality (0-25 points)"
+    description_ko: "코드 품질 점수 산정 (0-25점)"
+    meta:
+      scoring:
+        25: "Clean code, proper abstractions, high readability, SOLID"
+        20: "Generally good, minor improvements possible"
+        15: "Average, MEDIUM issues exist"
+        10: "Readability/maintainability problems"
+        5: "Serious code smells, high complexity"
+        0: "Incomprehensible code"
+      factors:
+        - "Code readability"
+        - "Cyclomatic complexity"
+        - "Code duplication"
+        - "Naming conventions"
+        - "SOLID principles"
+
+  - id: "N40"
+    entity: "completeness_evaluator"
+    label: "Evaluate Test Coverage"
+    label_ko: "테스트 커버리지 평가"
+    kind: "action"
+    order: 40
+    description: "Score test coverage (0-25 points)"
+    description_ko: "테스트 커버리지 점수 산정 (0-25점)"
+    meta:
+      scoring:
+        25: "80%+ coverage, critical paths and edge cases tested"
+        20: "60-79% coverage, main paths tested"
+        15: "40-59% coverage, basic tests exist"
+        10: "20-39% coverage, insufficient tests"
+        5: "<20% coverage, minimal tests"
+        0: "No tests or tests failing"
+
+  - id: "N50"
+    entity: "completeness_evaluator"
+    label: "Evaluate Security/Stability"
+    label_ko: "보안/안정성 평가"
+    kind: "action"
+    order: 50
+    description: "Score security and stability (0-25 points)"
+    description_ko: "보안 및 안정성 점수 산정 (0-25점)"
+    meta:
+      scoring:
+        25: "No vulnerabilities, complete error handling, input validation"
+        20: "Good security, minor improvements possible"
+        15: "Minor security/stability issues, recommended fixes"
+        10: "Multiple security/stability concerns, fixes needed"
+        5: "Serious vulnerabilities or instability"
+        0: "Critical security issues or system failures possible"
+      factors:
+        - "Security vulnerabilities"
+        - "Error handling"
+        - "Input validation"
+        - "Resource management"
+
+  # Severity Deduction
+  - id: "N60"
+    entity: "completeness_evaluator"
+    label: "Apply Finding Deductions"
+    label_ko: "발견사항 감점 적용"
+    kind: "action"
+    order: 60
+    description: "Deduct points based on finding severities"
+    description_ko: "발견사항 심각도에 따른 감점"
+    meta:
+      deductions:
+        CRITICAL: "Auto NOT_READY (regardless of score)"
+        HIGH: "-10 points per finding"
+        MEDIUM: "-3 points per finding"
+        LOW: "-1 point per finding"
+        INFO: "0 points"
+
+  # Calculate Total
+  - id: "N70"
+    entity: "completeness_evaluator"
+    label: "Calculate Total Score"
+    label_ko: "총점 계산"
+    kind: "action"
+    order: 70
+    description: "Sum all area scores and apply deductions"
+    description_ko: "모든 영역 점수 합산 및 감점 적용"
+
+  # Check for Critical
+  - id: "N75"
+    entity: "completeness_evaluator"
+    label: "Critical Findings?"
+    label_ko: "Critical 발견?"
+    kind: "decision"
+    order: 75
+    description: "Check if any CRITICAL findings exist"
+    description_ko: "CRITICAL 발견사항 존재 여부 확인"
+
+  # Overall Assessment Decision
+  - id: "N80"
+    entity: "completeness_evaluator"
+    label: "Determine Assessment"
+    label_ko: "평가 결정"
+    kind: "decision"
+    order: 80
+    description: "Determine overall assessment based on total score"
+    description_ko: "총점 기반 전체 평가 결정"
+
+  # Assessment Results
+  - id: "N81"
+    entity: "completeness_report"
+    label: "PRODUCTION_READY"
+    label_ko: "운영 준비 완료"
+    kind: "action"
+    order: 81
+    description: "Score 80-100: Ready for production deployment"
+    description_ko: "점수 80-100: 운영 배포 준비 완료"
+    meta:
+      score_range: "80-100"
+      meaning: "Can be deployed to production"
+      action: "APPROVE"
+
+  - id: "N82"
+    entity: "completeness_report"
+    label: "NEEDS_WORK"
+    label_ko: "수정 필요"
+    kind: "action"
+    order: 82
+    description: "Score 60-79: Requires fixes before deployment"
+    description_ko: "점수 60-79: 배포 전 수정 필요"
+    meta:
+      score_range: "60-79"
+      meaning: "Need modifications and re-review"
+      action: "REQUEST_CHANGES"
+
+  - id: "N83"
+    entity: "completeness_report"
+    label: "NOT_READY"
+    label_ko: "준비 안됨"
+    kind: "action"
+    order: 83
+    description: "Score 0-59 or CRITICAL: Significant work needed"
+    description_ko: "점수 0-59 또는 CRITICAL: 상당한 작업 필요"
+    meta:
+      score_range: "0-59"
+      meaning: "Cannot be deployed, major rework needed"
+      action: "REJECT"
+
+  # Generate Report
+  - id: "N90"
+    entity: "completeness_report"
+    label: "Generate Report"
+    label_ko: "리포트 생성"
+    kind: "action"
+    order: 90
+    description: "Generate completeness report with all details"
+    description_ko: "모든 상세 내용이 포함된 완성도 리포트 생성"
+    meta:
+      report_sections:
+        - "Classification Summary"
+        - "Overall Assessment"
+        - "Area Scores (with status icons)"
+        - "Findings Summary"
+        - "Detailed Findings"
+        - "Production Readiness Judgment"
+        - "Must Fix Items"
+        - "Should Fix Items"
+        - "Nice to Have Items"
+
+  # Identify Required Actions
+  - id: "N95"
+    entity: "completeness_report"
+    label: "Identify Required Actions"
+    label_ko: "필수 조치 식별"
+    kind: "action"
+    order: 95
+    description: "Categorize findings into must-fix, should-fix, nice-to-have"
+    description_ko: "발견사항을 필수 수정, 권장 수정, 선택적 수정으로 분류"
+    meta:
+      categories:
+        must_fix: "CRITICAL and HIGH severity findings"
+        should_fix: "MEDIUM severity findings"
+        nice_to_have: "LOW severity findings"
+
+  # End
+  - id: "N100"
+    entity: "developer"
+    label: "Deliver Report"
+    label_ko: "리포트 전달"
+    kind: "end"
+    order: 100
+    description: "Deliver completeness report to developer"
+    description_ko: "개발자에게 완성도 리포트 전달"
+
+# ============================================================================
+# Edges
+# ============================================================================
+edges:
+  - id: "E10"
+    source: "N10"
+    target: "N20"
+    label: "evaluate"
+    label_ko: "평가"
+    kind: "main"
+    order: 11
+
+  - id: "E20"
+    source: "N20"
+    target: "N30"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 21
+
+  - id: "E30"
+    source: "N30"
+    target: "N40"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 31
+
+  - id: "E40"
+    source: "N40"
+    target: "N50"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 41
+
+  - id: "E50"
+    source: "N50"
+    target: "N60"
+    label: "next"
+    label_ko: "다음"
+    kind: "main"
+    order: 51
+
+  - id: "E60"
+    source: "N60"
+    target: "N70"
+    label: "calculate"
+    label_ko: "계산"
+    kind: "main"
+    order: 61
+
+  - id: "E70"
+    source: "N70"
+    target: "N75"
+    label: "check"
+    label_ko: "확인"
+    kind: "main"
+    order: 71
+
+  # Critical check
+  - id: "E75Y"
+    source: "N75"
+    target: "N83"
+    label: "CRITICAL exists"
+    label_ko: "CRITICAL 존재"
+    kind: "exception"
+    order: 76
+    condition: "Any CRITICAL finding"
+
+  - id: "E75N"
+    source: "N75"
+    target: "N80"
+    label: "No CRITICAL"
+    label_ko: "CRITICAL 없음"
+    kind: "main"
+    order: 77
+
+  # Assessment branches
+  - id: "E80R"
+    source: "N80"
+    target: "N81"
+    label: "80-100"
+    label_ko: "80-100"
+    kind: "main"
+    order: 81
+    condition: "Score >= 80"
+
+  - id: "E80N"
+    source: "N80"
+    target: "N82"
+    label: "60-79"
+    label_ko: "60-79"
+    kind: "alt"
+    order: 82
+    condition: "Score 60-79"
+
+  - id: "E80F"
+    source: "N80"
+    target: "N83"
+    label: "0-59"
+    label_ko: "0-59"
+    kind: "alt"
+    order: 83
+    condition: "Score < 60"
+
+  # Merge to report generation
+  - id: "E81"
+    source: "N81"
+    target: "N90"
+    label: "generate"
+    label_ko: "생성"
+    kind: "main"
+    order: 91
+
+  - id: "E82"
+    source: "N82"
+    target: "N90"
+    label: "generate"
+    label_ko: "생성"
+    kind: "main"
+    order: 92
+
+  - id: "E83"
+    source: "N83"
+    target: "N90"
+    label: "generate"
+    label_ko: "생성"
+    kind: "main"
+    order: 93
+
+  - id: "E90"
+    source: "N90"
+    target: "N95"
+    label: "categorize"
+    label_ko: "분류"
+    kind: "main"
+    order: 96
+
+  - id: "E95"
+    source: "N95"
+    target: "N100"
+    label: "deliver"
+    label_ko: "전달"
+    kind: "main"
+    order: 101
+
+# ============================================================================
+# Paths
+# ============================================================================
+paths:
+  main:
+    name: "Production Ready Path"
+    name_ko: "운영 준비 완료 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N70", "N75", "N80", "N81", "N90", "N95", "N100"]
+    description: "Code is production ready (score 80+)"
+
+  needs_work:
+    name: "Needs Work Path"
+    name_ko: "수정 필요 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N70", "N75", "N80", "N82", "N90", "N95", "N100"]
+    description: "Requires modifications (score 60-79)"
+
+  not_ready:
+    name: "Not Ready Path"
+    name_ko: "준비 안됨 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N70", "N75", "N80", "N83", "N90", "N95", "N100"]
+    description: "Major work needed (score <60)"
+
+  critical_block:
+    name: "Critical Block Path"
+    name_ko: "Critical 차단 경로"
+    nodes: ["N10", "N20", "N30", "N40", "N50", "N60", "N70", "N75", "N83", "N90", "N95", "N100"]
+    description: "Blocked by CRITICAL finding"
+
+# ============================================================================
+# Annotations
+# ============================================================================
+annotations:
+  - target: "N20"
+    type: "info"
+    text: "Each area is scored 0-25 points"
+    text_ko: "각 영역은 0-25점으로 채점"
+
+  - target: "N60"
+    type: "warning"
+    text: "HIGH findings deduct 10 points each"
+    text_ko: "HIGH 발견사항은 각 10점 감점"
+
+  - target: "N75"
+    type: "critical"
+    text: "CRITICAL finding = automatic NOT_READY"
+    text_ko: "CRITICAL 발견 = 자동 NOT_READY"
+
+  - target: "N90"
+    type: "info"
+    text: "Report follows __Prompt/Report_Template.md format"
+    text_ko: "리포트는 __Prompt/Report_Template.md 형식 따름"
+
+# ============================================================================
+# Score Status Icons
+# ============================================================================
+meta:
+  status_icons:
+    good: "20-25"
+    warning: "15-19"
+    critical: "0-14"
+
+# ============================================================================
+# Layout
+# ============================================================================
+layout:
+  direction: "TB"
+  node_spacing: 60
+  rank_spacing: 80

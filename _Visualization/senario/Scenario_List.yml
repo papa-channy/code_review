@@ -1,9 +1,10 @@
 # Scenario_List.yml - Code Review Pipeline Master Index
 # Generated: 2026-01-24
-# Based on: CLAUDE.md Code Review Pipeline Guide
+# Updated: 2026-01-26 (Added CR-06, CR-07)
+# Based on: CLAUDE.md Code Review Pipeline Guide v1.1.0
 
 schema_version: "1.0"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 metadata:
   project: "Code Review Pipeline"
@@ -91,13 +92,15 @@ metadata:
       description: "Automated checks + quick review"
 
 # =============================================================================
-# FLOW CR: Code Review Pipeline (5 scenarios)
+# FLOW CR: Code Review Pipeline (7 scenarios)
+# =============================================================================
+# v1.1.0: Added CR-06 (Auto Classification), CR-07 (Completeness Evaluation)
 # =============================================================================
 flows:
   - id: "CR"
     name: "Code Review Pipeline"
     name_kr: "코드 리뷰 파이프라인"
-    description: "Systematic code review process from PR submission to approval"
+    description: "Systematic code review process from PR submission to approval with auto-classification and completeness evaluation"
     actors: ["dev", "reviewer", "senior", "security", "compliance"]
 
     scenarios:
@@ -160,6 +163,30 @@ flows:
         actors: ["reviewer", "senior", "security", "compliance"]
         files:
           graph: "CR-05_escalation/graph.yml"
+
+      - id: "CR-06"
+        name: "auto_classification"
+        title: "Auto Classification"
+        title_kr: "자동 분류"
+        description: "Automatic classification based on path patterns and keywords (CLAUDE.md Section 9)"
+        status: "implemented"
+        priority: "high"
+        tags: ["classification", "automation", "patterns", "keywords"]
+        actors: ["dev"]
+        files:
+          graph: "CR-06_auto_classification/graph.yml"
+
+      - id: "CR-07"
+        name: "completeness_evaluation"
+        title: "Completeness Evaluation"
+        title_kr: "완성도 평가"
+        description: "Evaluate code completeness and production readiness (CLAUDE.md Section 10)"
+        status: "implemented"
+        priority: "critical"
+        tags: ["evaluation", "scoring", "production-ready", "report"]
+        actors: ["reviewer"]
+        files:
+          graph: "CR-07_completeness_evaluation/graph.yml"
 
 # Status Legend
 # - draft: Initial creation, not reviewed

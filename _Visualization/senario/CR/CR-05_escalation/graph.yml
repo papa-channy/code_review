@@ -8,7 +8,7 @@ schema_version: "2.0"
 scenario_id: "CR-05"
 scenario_name: "Escalation Process"
 scenario_name_ko: "에스컬레이션 프로세스"
-last_updated: "2026-01-24"
+last_updated: "2026-01-26"
 
 # ============================================================================
 # Entities
