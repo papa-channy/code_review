@@ -1,3 +1,6 @@
 # repo-autopilot 파이프라인 파일을 GitHub PR diff에서 자동 접기
 .autopilot/** linguist-generated=true
 .autopilot/** -diff
+
+# 줄바꿈 정규화: 텍스트 파일은 항상 LF (CRLF 오염 방지)
+* text=auto eol=lf
