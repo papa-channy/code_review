@@ -26,7 +26,9 @@ code_review/
 │   ├── Code_Review_Execution.md           # 코드 리뷰 실행 가이드
 │   ├── Report_Template.md                 # 완성도 리포트 템플릿
 │   ├── Quick_Start.md                     # 빠른 시작 가이드
-│   └── Scenario_Creation_Guide.md         # 시나리오 생성 가이드
+│   ├── Scenario_Creation_Guide.md         # 시나리오 생성 가이드
+│   ├── CODEOWNERS_Guide.md                # CODEOWNERS 작성 가이드
+│   └── Postmortem_Guide.md                # Blameless Postmortem 가이드
 ├── research/                              # 리서치 자료
 │   ├── classification.md                  # 분류 체계 이론
 │   └── backend_cleancode.md               # 실무 트리아지 체계
@@ -48,6 +50,9 @@ Claude AI가 코드 리뷰 수행 시 따라야 할 상세한 가이드 문서�
 - **에스컬레이션**: 불확실한 상황에서의 처리 경로
 - **자동 분류 기준**: 경로/키워드 기반 분류 규칙
 - **완성도 평가 기준**: 영역별 점수 산정 및 전체 평가 기준
+- **승인 모델**: 3-bit 승인 구조 (LGTM / OWNERSHIP / EXPERTISE), Tier별 요구 승인
+- **Post-Merge 프로세스**: 배포 전/중/후 체크리스트, 롤백 기준
+- **리뷰 메트릭**: 핵심 6개 메트릭 + DORA 메트릭, 피드백 루프
 
 ### __Prompt/
 
@@ -58,6 +63,9 @@ Claude AI가 코드 리뷰 수행 시 따라야 할 상세한 가이드 문서�
 | `Code_Review_Execution.md` | 코드 리뷰 실행 가이드 (분류 → 리뷰 → 리포트) |
 | `Report_Template.md` | 완성도 리포트 템플릿 (복사해서 사용) |
 | `Quick_Start.md` | 빠른 시작 가이드 (설치, 사용법, FAQ) |
+| `Scenario_Creation_Guide.md` | 시각화 시나리오 생성 가이드 |
+| `CODEOWNERS_Guide.md` | CODEOWNERS 작성 가이드 + 템플릿 (승인 모델 실행 기반) |
+| `Postmortem_Guide.md` | Blameless Postmortem 템플릿 + 프로세스 |
 
 ### research/
 
