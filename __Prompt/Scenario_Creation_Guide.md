@@ -1,6 +1,6 @@
 # Scenario Creation Guide (SSOT)
 
-> **목적**: `_Visualization/senario/` 하위에 신규 시나리오를 생성할 때 참고하는 단일 진실 공급원(Single Source of Truth)
+> **목적**: `_Visualization/scenario/` 하위에 신규 시나리오를 생성할 때 참고하는 단일 진실 공급원(Single Source of Truth)
 
 ---
 
@@ -8,7 +8,7 @@
 
 ```
 _Visualization/
-├── senario/
+├── scenario/
 │   ├── Scenario_List.yml          # 전체 시나리오 마스터 인덱스
 │   ├── {FLOW_ID}/                  # 플로우 폴더 (CR, ...)
 │   │   └── {SCENARIO_ID}_{name}/   # 시나리오 폴더
@@ -37,7 +37,7 @@ _Visualization/
 # 형식: {FLOW_ID}-{NUMBER}_{snake_case_name}
 # 예시: CR-06_pr_template_validation
 
-mkdir _Visualization/senario/{FLOW_ID}/{SCENARIO_ID}_{name}
+mkdir _Visualization/scenario/{FLOW_ID}/{SCENARIO_ID}_{name}
 ```
 
 **Flow ID 참조:**
@@ -49,7 +49,7 @@ mkdir _Visualization/senario/{FLOW_ID}/{SCENARIO_ID}_{name}
 
 ```bash
 cp _Visualization/_templates/graph.template.yml \
-   _Visualization/senario/{FLOW_ID}/{SCENARIO_FOLDER}/graph.yml
+   _Visualization/scenario/{FLOW_ID}/{SCENARIO_FOLDER}/graph.yml
 ```
 
 ### Step 3: graph.yml 작성 (필수)
@@ -153,7 +153,7 @@ paths:
 
 ### Step 4: Scenario_List.yml 등록
 
-`senario/Scenario_List.yml`의 해당 flow에 시나리오 추가:
+`scenario/Scenario_List.yml`의 해당 flow에 시나리오 추가:
 
 ```yaml
 - id: "CR-06"

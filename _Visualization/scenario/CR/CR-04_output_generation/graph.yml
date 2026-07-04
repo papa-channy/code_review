@@ -2,8 +2,8 @@
 # CR-04: Review Output Generation
 # ============================================================================
 # Generate standardized review output with findings and recommendations
-# Based on CLAUDE.md Section 5: Output Format Standards
-# Extended by: CR-07 for Completeness Evaluation (CLAUDE.md Section 10)
+# Based on Review_Pipeline_Guide.md Section 5: Output Format Standards
+# Extended by: CR-07 for Completeness Evaluation (Review_Pipeline_Guide.md Section 10)
 
 schema_version: "2.0"
 scenario_id: "CR-04"

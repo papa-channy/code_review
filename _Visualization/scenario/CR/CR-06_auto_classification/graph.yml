@@ -2,7 +2,7 @@
 # CR-06: Auto Classification
 # ============================================================================
 # Automatic classification based on path patterns, keywords, and heuristics
-# Based on CLAUDE.md Section 9: Auto-Classification Criteria
+# Based on Review_Pipeline_Guide.md Section 9: Auto-Classification Criteria
 #
 # This scenario extends CR-01 by providing automatic classification logic
 # that can be applied before or during manual review.

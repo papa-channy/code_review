@@ -20,7 +20,7 @@
 
 ```
 code_review/
-├── CLAUDE.md                          # 리뷰 가이드 (SSOT) v1.1.0
+├── Review_Pipeline_Guide.md                          # 리뷰 가이드 (SSOT) v1.1.0
 ├── __Prompt/
 │   ├── Code_Review_Execution.md       # 실행 프롬프트
 │   ├── Report_Template.md             # 완성도 리포트 템플릿

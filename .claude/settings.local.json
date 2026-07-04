@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(for f in senario/CR/*/graph.yml)",
+      "Bash(for f in scenario/CR/*/graph.yml)",
       "Bash(do python -c \"import yaml; yaml.safe_load\\(open\\(''$f'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''$f: OK''\\)\")",
       "Bash(done)",
       "WebSearch",

@@ -16,8 +16,11 @@ AI 기반 코드 리뷰를 위한 가이드라인 및 분류 체계 레포지토
 
 ```
 code_review/
-├── CLAUDE.md                              # 코드 리뷰 파이프라인 가이드 (핵심 문서)
+├── Review_Pipeline_Guide.md               # 코드 리뷰 파이프라인 가이드 (핵심 문서, SSOT)
+├── CLAUDE.md                              # Claude Code 프로젝트 지침
 ├── README.md                              # 레포지토리 설명
+├── AS-IS.md                               # 현황 분석 (성숙도 평가)
+├── TO-BE.md                               # 개선 로드맵 (Phase 1~4)
 ├── LICENSE
 ├── __Prompt/                              # 실행 프롬프트
 │   ├── Code_Review_Execution.md           # 코드 리뷰 실행 가이드
@@ -27,12 +30,12 @@ code_review/
 ├── research/                              # 리서치 자료
 │   ├── classification.md                  # 분류 체계 이론
 │   └── backend_cleancode.md               # 실무 트리아지 체계
-└── _Visualization/                        # 시각화 보조 자료
+└── _Visualization/                        # 시각화 보조 자료 (7개 시나리오)
 ```
 
 ## 핵심 문서
 
-### CLAUDE.md
+### Review_Pipeline_Guide.md
 
 Claude AI가 코드 리뷰 수행 시 따라야 할 상세한 가이드 문서입니다.
 
@@ -79,7 +82,7 @@ cp -r code_review/ /path/to/main-project/
 Claude에게 다음과 같이 요청합니다:
 
 ```
-code_review/CLAUDE.md를 참조하여 다음 코드를 리뷰해줘:
+code_review/Review_Pipeline_Guide.md를 참조하여 다음 코드를 리뷰해줘:
 
 ## 리뷰 대상
 - 파일: src/payment/checkout.py
@@ -132,10 +135,10 @@ Claude는 다음과 같은 형식으로 리뷰 결과를 제공합니다:
 ### 4. 커스터마이징
 
 조직에 맞게 다음 항목을 수정합니다:
-- 에스컬레이션 연락처 (CLAUDE.md Section 7.3)
-- 규제/보안 분류 기준 (CLAUDE.md Section 2.5)
-- 자동 분류 경로 패턴 (CLAUDE.md Section 9)
-- 자동화 연계 포인트 (CLAUDE.md Section 8.3)
+- 에스컬레이션 연락처 (Review_Pipeline_Guide.md Section 7.3)
+- 규제/보안 분류 기준 (Review_Pipeline_Guide.md Section 2.5)
+- 자동 분류 경로 패턴 (Review_Pipeline_Guide.md Section 9)
+- 자동화 연계 포인트 (Review_Pipeline_Guide.md Section 8.3)
 
 > 상세한 사용법은 `__Prompt/Quick_Start.md`를 참조하세요.
 

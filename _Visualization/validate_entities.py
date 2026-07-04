@@ -17,9 +17,9 @@ def load_shared_entities(shared_path: Path) -> set:
     entities = data.get("entities", [])
     return {e["id"] for e in entities if "id" in e}
 
-def find_all_graph_files(senario_path: Path) -> list:
-    """Find all graph.yml files in senario directory"""
-    return list(senario_path.rglob("graph.yml"))
+def find_all_graph_files(scenario_path: Path) -> list:
+    """Find all graph.yml files in scenario directory"""
+    return list(scenario_path.rglob("graph.yml"))
 
 def extract_entity_refs(graph_file: Path) -> tuple:
     """Extract entity refs and inline entities from a graph.yml file"""
@@ -50,7 +50,7 @@ def extract_entity_refs(graph_file: Path) -> tuple:
 def main():
     base_path = Path(__file__).parent
     shared_path = base_path / "_shared"
-    senario_path = base_path / "senario"
+    scenario_path = base_path / "scenario"
     
     # Load registered entities
     registered = load_shared_entities(shared_path)
@@ -59,7 +59,7 @@ def main():
     print(f"   IDs: {sorted(registered)}\n")
     
     # Find and analyze all graph files
-    graph_files = find_all_graph_files(senario_path)
+    graph_files = find_all_graph_files(scenario_path)
     print(f"📁 Found {len(graph_files)} graph.yml files\n")
     
     # Analyze

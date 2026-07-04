@@ -96,7 +96,7 @@ Phase 4: 지속적 개선       ← 문화 레벨 (메트릭, 피드백 루프)
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**산출물**: `CLAUDE.md`에 승인 모델 섹션 추가
+**산출물**: `Review_Pipeline_Guide.md`에 승인 모델 섹션 추가
 
 ### P1-2. CODEOWNERS 가이드 및 템플릿
 
@@ -149,7 +149,7 @@ Phase 4: 지속적 개선       ← 문화 레벨 (메트릭, 피드백 루프)
 - [ ] 관련 문서 업데이트
 ```
 
-**산출물**: `CLAUDE.md`에 Post-Merge 섹션 추가
+**산출물**: `Review_Pipeline_Guide.md`에 Post-Merge 섹션 추가
 
 ### P1-4. Blameless Postmortem 가이드
 
@@ -191,7 +191,7 @@ Phase 4: 지속적 개선       ← 문화 레벨 (메트릭, 피드백 루프)
 | **머지 후 결함률** | 머지 후 발견된 버그 비율 | < 5% | - |
 | **리뷰어 부하** | 리뷰어당 주간 리뷰 건수 | < 10건 | - |
 
-**산출물**: `CLAUDE.md`에 메트릭 섹션 추가
+**산출물**: `Review_Pipeline_Guide.md`에 메트릭 섹션 추가
 
 ---
 
@@ -407,7 +407,7 @@ Stage 4: Full (100%)
 - PAGE: 에러율 > 5% 또는 서비스 다운
 ```
 
-**산출물**: `CLAUDE.md` Post-Merge 섹션에 통합
+**산출물**: `Review_Pipeline_Guide.md` Post-Merge 섹션에 통합
 
 ### P3-3. Feature Flag 운영 가이드
 
@@ -529,7 +529,7 @@ Feature Flag 라이프사이클:
   ├─ 분류 기준 조정
   └─ 리뷰어 교육 포인트 도출
   ↓
-[반영] → CLAUDE.md 업데이트
+[반영] → Review_Pipeline_Guide.md 업데이트
   ↓
 [반복] (월간 사이클)
 ```
@@ -624,9 +624,9 @@ Readability 프로그램:
 
 | 파일 | 유형 | 설명 |
 |------|------|------|
-| `CLAUDE.md` 승인 모델 섹션 | 수정 | 3단 승인 구조 정의 |
-| `CLAUDE.md` Post-Merge 섹션 | 수정 | 배포/모니터링/롤백 체크리스트 |
-| `CLAUDE.md` 메트릭 섹션 | 수정 | 핵심 메트릭 + 목표값 |
+| `Review_Pipeline_Guide.md` 승인 모델 섹션 | 수정 | 3단 승인 구조 정의 |
+| `Review_Pipeline_Guide.md` Post-Merge 섹션 | 수정 | 배포/모니터링/롤백 체크리스트 |
+| `Review_Pipeline_Guide.md` 메트릭 섹션 | 수정 | 핵심 메트릭 + 목표값 |
 | `__Prompt/CODEOWNERS_Guide.md` | 신규 | CODEOWNERS 작성 가이드 + 템플릿 |
 | `__Prompt/Postmortem_Guide.md` | 신규 | Blameless Postmortem 템플릿 + 프로세스 |
 

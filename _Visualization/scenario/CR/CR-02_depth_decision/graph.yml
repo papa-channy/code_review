@@ -2,7 +2,7 @@
 # CR-02: Review Depth Decision
 # ============================================================================
 # Determine review tier (1-4) based on classification results
-# Based on CLAUDE.md Section 3: Review Depth Matrix
+# Based on Review_Pipeline_Guide.md Section 3: Review Depth Matrix
 
 schema_version: "2.0"
 scenario_id: "CR-02"

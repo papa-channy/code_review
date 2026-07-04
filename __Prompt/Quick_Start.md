@@ -18,7 +18,7 @@ cp -r code_review/ /path/to/your-project/
 
 # 또는 필수 파일만 복사
 mkdir -p /path/to/your-project/code_review/__Prompt
-cp code_review/CLAUDE.md /path/to/your-project/code_review/
+cp code_review/Review_Pipeline_Guide.md /path/to/your-project/code_review/
 cp code_review/__Prompt/*.md /path/to/your-project/code_review/__Prompt/
 ```
 
@@ -47,7 +47,7 @@ git clone --recurse-submodules <your-repo-url>
 ```
 your-project/
 ├── code_review/
-│   ├── CLAUDE.md                          # 리뷰 가이드 (SSOT)
+│   ├── Review_Pipeline_Guide.md                          # 리뷰 가이드 (SSOT)
 │   └── __Prompt/
 │       ├── Code_Review_Execution.md       # 실행 프롬프트
 │       ├── Report_Template.md             # 리포트 템플릿
@@ -64,7 +64,7 @@ your-project/
 Claude에게 다음과 같이 요청합니다:
 
 ```
-code_review/CLAUDE.md를 참조하여 다음 코드를 리뷰해줘:
+code_review/Review_Pipeline_Guide.md를 참조하여 다음 코드를 리뷰해줘:
 
 [코드 블록 또는 파일 경로]
 ```
@@ -74,7 +74,7 @@ code_review/CLAUDE.md를 참조하여 다음 코드를 리뷰해줘:
 더 정확한 분류를 위해 추가 정보를 제공합니다:
 
 ```
-code_review/CLAUDE.md 가이드에 따라 코드 리뷰를 수행해줘.
+code_review/Review_Pipeline_Guide.md 가이드에 따라 코드 리뷰를 수행해줘.
 
 ## 리뷰 대상
 - 파일: src/payment/checkout.py
@@ -90,7 +90,7 @@ code_review/CLAUDE.md 가이드에 따라 코드 리뷰를 수행해줘.
 ### 2.3 PR 리뷰 요청
 
 ```
-code_review/CLAUDE.md를 따라 이 PR을 리뷰해줘.
+code_review/Review_Pipeline_Guide.md를 따라 이 PR을 리뷰해줘.
 
 PR: [PR 링크 또는 PR 정보]
 변경 파일: [파일 목록]
@@ -195,7 +195,7 @@ TIER 2 수준으로 다음 코드를 리뷰해줘:
 
 ### 5.1 조직별 커스터마이징 포인트
 
-`CLAUDE.md`에서 다음 항목을 조직에 맞게 수정:
+`Review_Pipeline_Guide.md`에서 다음 항목을 조직에 맞게 수정:
 
 | 섹션 | 항목 | 커스터마이징 내용 |
 |------|------|-------------------|
@@ -293,7 +293,7 @@ CRITICAL Finding이 있으면 자동으로 NOT_READY가 됩니다.
 ### 7.1 기본 리뷰 요청
 
 ```
-code_review/CLAUDE.md를 참조하여 다음 코드를 리뷰해줘:
+code_review/Review_Pipeline_Guide.md를 참조하여 다음 코드를 리뷰해줘:
 
 ## 리뷰 대상
 - 파일: [파일 경로]
@@ -306,7 +306,7 @@ code_review/CLAUDE.md를 참조하여 다음 코드를 리뷰해줘:
 ### 7.2 상세 리뷰 요청
 
 ```
-code_review/CLAUDE.md 가이드에 따라 코드 리뷰를 수행해줘.
+code_review/Review_Pipeline_Guide.md 가이드에 따라 코드 리뷰를 수행해줘.
 
 ## 리뷰 대상
 - 파일: [파일 경로]
@@ -330,7 +330,7 @@ code_review/CLAUDE.md 가이드에 따라 코드 리뷰를 수행해줘.
 ### 7.3 빠른 리뷰 요청
 
 ```
-다음 코드 간단히 리뷰해줘 (code_review/CLAUDE.md 참조):
+다음 코드 간단히 리뷰해줘 (code_review/Review_Pipeline_Guide.md 참조):
 
 [코드 블록]
 ```
@@ -338,7 +338,7 @@ code_review/CLAUDE.md 가이드에 따라 코드 리뷰를 수행해줘.
 ### 7.4 특정 관점 리뷰
 
 ```
-code_review/CLAUDE.md 가이드 중 보안 체크리스트만 적용하여 다음 코드를 리뷰해줘:
+code_review/Review_Pipeline_Guide.md 가이드 중 보안 체크리스트만 적용하여 다음 코드를 리뷰해줘:
 
 [코드 블록]
 ```
@@ -353,7 +353,7 @@ code_review/CLAUDE.md 가이드 중 보안 체크리스트만 적용하여 다�
 
 **해결**:
 1. 오버라이드 사용
-2. CLAUDE.md의 경로 패턴 커스터마이징
+2. Review_Pipeline_Guide.md의 경로 패턴 커스터마이징
 
 ### 문제: 리뷰가 너무 간략함
 
@@ -365,18 +365,18 @@ code_review/CLAUDE.md 가이드 중 보안 체크리스트만 적용하여 다�
 
 ### 문제: 특정 규제가 인식 안됨
 
-**원인**: CLAUDE.md에 해당 규제가 없음
+**원인**: Review_Pipeline_Guide.md에 해당 규제가 없음
 
 **해결**:
 1. Sensitivity 오버라이드 사용
-2. CLAUDE.md에 규제 추가
+2. Review_Pipeline_Guide.md에 규제 추가
 
 ---
 
 ## 9. 체크리스트: 도입 준비
 
 - [ ] code_review 폴더를 프로젝트에 복사
-- [ ] CLAUDE.md의 에스컬레이션 연락처 수정
+- [ ] Review_Pipeline_Guide.md의 에스컬레이션 연락처 수정
 - [ ] 필요시 Risk Level 경로 패턴 커스터마이징
 - [ ] 필요시 Sensitivity 규제 항목 커스터마이징
 - [ ] 팀에 사용법 공유

@@ -1,7 +1,7 @@
 # Scenario_List.yml - Code Review Pipeline Master Index
 # Generated: 2026-01-24
 # Updated: 2026-01-26 (Added CR-06, CR-07)
-# Based on: CLAUDE.md Code Review Pipeline Guide v1.1.0
+# Based on: Review_Pipeline_Guide.md Code Review Pipeline Guide v1.1.0
 
 schema_version: "1.0"
 last_updated: "2026-01-26"
@@ -168,7 +168,7 @@ flows:
         name: "auto_classification"
         title: "Auto Classification"
         title_kr: "자동 분류"
-        description: "Automatic classification based on path patterns and keywords (CLAUDE.md Section 9)"
+        description: "Automatic classification based on path patterns and keywords (Review_Pipeline_Guide.md Section 9)"
         status: "implemented"
         priority: "high"
         tags: ["classification", "automation", "patterns", "keywords"]
@@ -180,7 +180,7 @@ flows:
         name: "completeness_evaluation"
         title: "Completeness Evaluation"
         title_kr: "완성도 평가"
-        description: "Evaluate code completeness and production readiness (CLAUDE.md Section 10)"
+        description: "Evaluate code completeness and production readiness (Review_Pipeline_Guide.md Section 10)"
         status: "implemented"
         priority: "critical"
         tags: ["evaluation", "scoring", "production-ready", "report"]

@@ -2,7 +2,7 @@
 # CR-07: Completeness Evaluation
 # ============================================================================
 # Evaluate code completeness and production readiness
-# Based on CLAUDE.md Section 10: Completeness Evaluation Criteria
+# Based on Review_Pipeline_Guide.md Section 10: Completeness Evaluation Criteria
 #
 # This scenario extends CR-04 by adding quantitative scoring and
 # production readiness assessment.
