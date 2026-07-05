@@ -1,8 +1,69 @@
-# review-hub — 커밋 단위 코드 리뷰 에이전트 시스템 아키텍처 설계서 (v1.0)
+# review-hub — 커밋 단위 코드 리뷰 에이전트 시스템 아키텍처 설계서
 
-- 상태: 검증 반영판 (4개 렌즈 설계 + 8건 적대적 비평 종합 + 제약/일관성/완전성 감사 3건 반영)
-- 작성 기준: BRIEF 확정 요구사항 8개 + code-tag 완전 독립 계약을 최상위 제약으로 함
-- 정책 원본: Review_Pipeline_Guide.md v1.2.0 (읽기 전용 SSOT)
+- 시스템명: **review-hub** · 작성일: 2026-07-05 · 문서 버전: **v1.1 (자족성 보강판)**
+  — v1.0 '검증 반영판'에서 설계 결정 무변경. 배경(§0)·요구사항 원문 인용(§2.1)·용어집(부록 B)만 보강
+- 상태: **구현 착수 전 설계서**. 4개 관점 독립 설계 + 적대적 비평 8건 + 감사 3건을 종합한
+  검증 반영판(프로세스는 §0.4). §16의 미결 16건은 추천 기본값으로 진행 중이며 사용자 재합의
+  대상 — 그 외 결정은 확정
+- 작성 기준: §2.1에 전문 인용된 확정 요구사항 8개 + code-tag 완전 독립 계약을 최상위 제약으로 함
+- 정책 원본: Review_Pipeline_Guide.md v1.2.0 (읽기 전용 SSOT — 소개는 §0.3, 원문은 hub 레포 동봉)
+- 대상 독자: 이 문서 하나로 프로젝트를 이해·평가하려는 제3자(리뷰어·아키텍트)와 구현자 본인.
+  배경 없는 독자는 §0부터 읽는다
+
+---
+
+## 0. 배경과 읽는 법
+
+### 0.1 프로젝트 전사 — 문서 가이드에서 실행형 에이전트로의 피벗
+
+이 저장소는 원래 사람이 따라 하는 **문서 기반 코드 리뷰 가이드 레포**였다(산출물의 실체는
+Review_Pipeline_Guide.md 하나 — 5축 분류·Tier·체크리스트·점수 모델을 정의하지만 실행 주체가
+사람이라 개인 개발자의 일상 커밋에 실제로 적용되지 못했다). 이를 **push 시 자동 실행되는
+커밋 단위 리뷰 에이전트 시스템**으로 고도화하는 것이 본 프로젝트다. 기존 가이드는 폐기가
+아니라 §8에서 기계 가독 정책팩으로 이식된다.
+
+### 0.2 운영 주체와 환경 전제
+
+개인 개발자 1인(GitHub: papa-channy)이 **상시 서버 0대**로 운영한다. 실행 기반은 전적으로
+GitHub 생태계(Actions·GitHub App·API·private 레포)다. 이 전제가 문서 전반의 결정 —
+무서버 트리거(§3.2), 단일 라이터 recorder(§4.2), 정적 뷰어(§11), "오탐 노이즈로 사용자가
+시스템을 꺼버리는 것"을 1순위 리스크로 보는 관점(§15) — 을 지배한다.
+
+### 0.3 관련 시스템 2개 (사전 지식 불필요 — 이 두 단락이 전부다)
+
+**code-tag** — 이미 프로덕션 가동 중인, 본 시스템과 **완전 독립**인 커밋 태깅 파이프라인
+(github.com/papa-channy/code-tag). push 시 대상 레포의 GitHub Actions가 커밋별 diff를
+LLM(OpenRouter, gpt-5-mini 체인)으로 분석해 3-layer 태그 — layer1 고정 9종(Scaffolding/
+Frontend/Backend/Database/Stabilization/Testing/Docs/Deploy/Config), layer2 반고정,
+layer3 자유 PascalCase, detail 영어 한 문장 — 를 그 레포의 `code-tag/index.db`(SQLite)와
+`index.json`에 누적하고, `[skip ci]` 커밋으로 발행하며, 정적 Pages 뷰어를 제공한다.
+본 시스템에게 code-tag는 세 가지 의미다: (i) 읽기 전용 컨텍스트 소스(§9),
+(ii) 무서버 GitHub-native 파이프라인·trust_boundary 패턴·정적 뷰어라는 아키텍처 선례,
+(iii) "완전 독립·양방향 의존 금지"라는 절대 제약(§2.3)의 대상.
+
+**Review_Pipeline_Guide.md (v1.2.0, 831줄)** — 기존 레포의 리뷰 정책 SSOT 문서.
+5축 분류(Risk/Size/Domain/Change-Type/Sensitivity), Tier 1~4 결정 트리, 체크리스트 약 70개
+(공통+Tier별+변경유형별), Finding 형식(Severity 5단계/Category 8종), 완성도 점수(4영역×25점
++감점 규칙), 경로·키워드 자동 분류 기준, 에스컬레이션, 3-bit 승인 모델, Post-Merge 절차,
+메트릭을 정의한다. 본 시스템이 §8에서 정책팩(`policy/`)으로 이식하는 원천이며, 원문은
+hub 레포에 동봉되어 정책팩과 함께 버전 관리된다.
+
+### 0.4 이 문서의 지위와 설계 검증 프로세스
+
+구현 착수 전 설계서다. 작성 과정: 동일한 확정 요구사항(§2.1)을 놓고 **4개 관점 —
+데이터 계약(data) · 실행 파이프라인(pipeline) · 리뷰 품질(agent) · 프로덕트(product)** —
+에서 독립 설계안 4개를 작성하고, 각 안에 적대적 비평 2종(제약 준수 감사 + 실패 모드 공격)
+총 8건을 수행한 뒤 종합했으며, 종합안에 다시 제약/일관성/완전성 감사 3건을 반영했다.
+본문의 "(pipeline 비평 high 해소)" 류 인용은 "실행 파이프라인 관점 설계안에 대한 적대적
+비평이 심각도 high로 지적했고, 본 설계가 수용·해소했다"의 축약이다. 설계안·비평 원문은
+동봉하지 않는다 — 본 문서는 결정과 근거 요지만으로 자족하도록 썼고, 채택하지 않은 대안은
+부록 A에 요약했다.
+
+**읽는 법**: 계약과 제약은 §2, 토폴로지·실행·컴포넌트·데이터는 §3~§6, 리뷰 파이프라인과
+정책 이식은 §7~§8, code-tag 경계와 안전장치는 §9~§10, 운영(GUI·피드백·비용·로드맵·리스크)은
+§11~§15, 재합의가 필요한 미결 사항은 §16, 용어는 **부록 B**. 정책의 '내용'(체크리스트 전문
+등)은 이 문서가 아니라 동봉된 가이드 원문의 범위다 — 이 문서는 그것을 어떻게 실어 나르는지
+(구조·계약·안전)를 확정한다.
 
 ---
 
@@ -19,8 +80,10 @@ push된 각 커밋을 자동으로 분류·리뷰하고, CRITICAL/HIGH finding�
 중앙 레포 **review-hub** 하나가 시스템 전체다. 대상 레포에는 약 20줄짜리 trigger-shim 워크플로와
 시크릿 1개만 설치되고, push 시 hub의 GitHub Actions를 `workflow_dispatch`로 깨운다. hub는
 GitHub App installation token(서버 없이 워크플로 내 발급)으로 대상 레포를 clone한 뒤,
-**DB에 기록된 브랜치별 리뷰 프론티어부터 현재 head까지**의 미리뷰 커밋을 열거하고, 커밋마다
-룰 우선 5축 분류 → Tier 라우팅 → 컨텍스트 어셈블리(ContextProvider 플러그인) →
+**DB에 기록된 브랜치별 리뷰 프론티어(frontier — '여기까지 처리 완료' 커밋 SHA, 부록 B)부터
+현재 head까지**의 미리뷰 커밋을 열거하고, 커밋마다
+룰 우선 5축(Risk/Size/Domain/Change-Type/Sensitivity) 분류 → Tier 라우팅(리뷰 깊이 4단계 —
+T1 최심층~T4 경량) → 컨텍스트 어셈블리(ContextProvider 플러그인) →
 커버리지 우선 리뷰 → 독립 verifier 검증 → 결정적 점수 계산 → 검증된 CRITICAL/HIGH에 한한
 수정 커밋 생성을 수행한다. 산출물은 push당 1개의 리뷰 브랜치+PR이며, 리뷰 결과는 run별
 JSONL 아티팩트로 증분 기록된 뒤 **같은 워크플로의 마지막 job인 recorder**(전역 직렬
@@ -32,27 +95,89 @@ JSON(export)으로 발행한다 — DB를 쓰는 주체는 recorder뿐이다. co
 ### 1.3 시스템 이름
 
 - 저장소/시스템 이름: **`review-hub`** (봇 계정: `review-hub[bot]`)
-- 근거: code-tag와 짝을 이루는 기능 서술형 이름. 4개 렌즈 모두 이 이름 계열로 수렴했고,
+- 근거: code-tag와 짝을 이루는 기능 서술형 이름. 4개 관점 모두 이 이름 계열로 수렴했고,
   브랜딩보다 유지보수 가독성이 1인 운영에 유리하다.
+
+### 1.4 비목표 (Non-goals)
+
+- **팀용 리뷰 프로세스 운영이 아니다**: 1인 운영 전제. 가이드의 3-bit 승인 모델은 축소
+  해석하고 원형은 정책팩에 보존만 한다(§8). 팀/제품화 확장은 판단 트리거만 남긴다(§11.4, §16 #6).
+- **auto-merge 없음**: 어떤 Tier에서도 자동 머지하지 않는다 — 사람 머지가 최종 방어선(§7.8, §10.4).
+- **리뷰 데이터 공개 호스팅 없음**: export는 어떤 형태로도 공개 Pages에 올리지 않는다(§11.1).
+- **code-tag의 대체·확장이 아니다**: 읽기 전용 소비만(§2.3, §9).
+- **자동 정책 튜닝 없음(M2까지)**: 피드백은 사람이 읽는 리포트까지(§12.2). 과거 이력 소급
+  리뷰도 기본 없음(§16 #7).
+
+### 1.5 평가자에게 바라는 검토 포인트
+
+이 문서는 제3자 평가를 받기 위한 것이다. 특히 다음을 검증해 달라:
+
+1. **아키텍처 타당성** — 프론티어 열거(§4.3) + 단일 라이터 recorder(§4.2)가 무서버·Actions
+   제약(pending 취소, 크래시, 동시 push, force-push)에서 커밋 유실·이중 기록을 정말
+   구조적으로 봉쇄하는가.
+2. **비용 현실성** — §13의 가정(월 150커밋, Tier 분포, 커밋당 토큰)이 깨졌을 때 3단 예산
+   가드가 충분한가. 커밋 단위 리뷰가 만드는 추가 복잡도(프론티어·tombstone·배치 분할)는
+   PR 단위 리뷰 대비 가치로 정당화되는가.
+3. **보안 경계** — 권한 이원화(§3.3)와 인젝션 3면 방어(§10.4)의 구멍, 특히 자격 증명 유출
+   시나리오별 피해 반경.
+4. **1인 운영 지속가능성** — 오탐 노이즈로 사용자가 shim을 삭제하면 시스템이 폐사한다(§15).
+   verifier+suppressor+보수적 상한(§7.5)과 MVP 정량 게이트(§14.1)가 이 리스크에 충분한가.
+5. **정책 이식 충실도** — §8의 이식 표가 가이드 원문(hub 동봉)의 의도를 보존하는가.
+   이 항목만은 본 문서 단독으로 검증 불가하며 hub에 동봉되는 가이드 원문과의 대조가 필요하다.
 
 ---
 
 ## 2. 확정 요구사항과 절대 제약
 
-| # | 요구사항 (변경 불가) | 본 설계에서의 이행 지점 |
+### 2.1 요구사항 원문 (전문 인용)
+
+사용자와 합의된 확정 요구사항의 **원문 전문**이다. §16의 '문면 편차' 판정과 §2.2 이행 표의
+기준 문면은 모두 이 인용문이며, §2.2 표의 '요구사항' 열은 이 원문의 압축 재서술이다.
+
+> 1. 커밋 단위 리뷰: push된 각 커밋을 개별 리뷰한다.
+> 2. 트리거: CI 자동 (push 시).
+> 3. 배포 형태: 중앙 실행형 — 하나의 중앙 시스템이 여러 대상 레포를 원격 리뷰한다. 대상
+>    레포에는 설치 흔적 최소화(0~수 줄). 리뷰 DB는 중앙화.
+> 4. 산출물: 대상 레포에 브랜치 생성 → PR 생성. PR에는 리뷰 리포트 + 처음부터 수정 제안
+>    커밋 포함(CRITICAL/HIGH finding 대상).
+> 5. GUI: 정적 뷰어(GitHub Pages류, 리뷰 데이터 JSON 소비)로 시작하되 이후 로컬 앱 등으로
+>    확장 가능한 구조.
+> 6. 기본 모델: Claude Sonnet 최신. 단, 이후 LLM API 비교 예정이므로 provider-agnostic
+>    모델 추상화 필요.
+> 7. 영향 반경 분석: 리뷰 시점 on-demand 탐색 — grep/LSP + code-tag DB 이력 조회. 이후
+>    auggie(Augment CLI 에이전트) 같은 컨텍스트 탐색 에이전트를 끼울 수 있는 플러그인
+>    인터페이스를 남겨둘 것.
+> 8. code-tag와의 관계 (절대 제약): 완전 독립. 리뷰 시스템은 code-tag가 대상 레포에
+>    발행하는 code-tag/index.db 또는 index.json을 읽기 전용으로 소비만 한다. code-tag의
+>    수정·확장에 의존하는 설계 금지. code-tag가 설치되지 않은 레포에서도 동작해야 한다
+>    (컨텍스트 품질 저하만 수용). 양방향 의존 절대 금지.
+
+원문은 이에 더해 (i) 트리거 전달 3후보 — **(a) 대상 레포에 수 줄짜리 dispatch 워크플로,
+(b) GitHub App 웹훅 + 호스팅 러너, (c) 중앙 레포 Actions cron 폴링** — 의 비교·선택을
+지시했고(§3.2에서 수행), (ii) Tier별 비용·깊이 차등에서 **"Tier 4는 스킵 또는 경량"을 명시
+허용**했으며(§4.5·§7.2의 T4 rule-only 근거), (iii) 정책 자산의 원천으로
+Review_Pipeline_Guide.md v1.2.0을 지정했다(§0.3, §8).
+
+### 2.2 이행 표
+
+| # | 요구사항 (변경 불가 — §2.1 원문의 압축 재서술) | 본 설계에서의 이행 지점 |
 |---|---|---|
-| 1 | 커밋 단위 리뷰 — push된 각 커밋 개별 리뷰 | 온보딩 시 프론티어 베이스라인(등록 시점 HEAD) 초기화 후 프론티어..HEAD 전수 열거(§3.4/§4.3), 스킵 커밋도 tombstone 행 기록, 대량 push는 배치 분할+후속 run(§4.6), 예산 중단 미처리분은 무기록+재열거 수습(§4.7), 월 예산 초과 시 스킵이 아닌 Haiku 경량 강등(§13.3) |
+| 1 | 커밋 단위 리뷰 — push된 각 커밋 개별 리뷰 | 온보딩 시 프론티어 베이스라인(등록 시점 HEAD) 초기화 후 프론티어..HEAD 전수 열거(§3.4/§4.3), 스킵 커밋도 tombstone 행(스킵 사유를 남기는 기록 전용 리뷰 행 — 부록 B) 기록, 대량 push는 배치 분할+후속 run(§4.6), 예산 중단 미처리분은 무기록+재열거 수습(§4.7), 월 예산 초과 시 스킵이 아닌 Haiku 경량 강등(§13.3) |
 | 2 | 트리거: CI 자동 (push 시) | trigger-shim → workflow_dispatch (§3.2). 단 기본 대상이 main 브랜치 한정 — 문면에 없는 범위 축소, §16 #2 재합의 항목 |
-| 3 | 중앙 실행형, 대상 레포 설치 흔적 0~수 줄, 리뷰 DB 중앙화 | 대상 레포 자산 = 워크플로 1개(약 20줄)+시크릿 1개 — '0~수 줄' 문면의 상단 초과이나 BRIEF 후보 (a)와 동일 형태, §16 #15 재합의 항목. 실행·정책·DB·뷰어 전부 hub (§3) |
+| 3 | 중앙 실행형, 대상 레포 설치 흔적 0~수 줄, 리뷰 DB 중앙화 | 대상 레포 자산 = 워크플로 1개(약 20줄)+시크릿 1개 — '0~수 줄' 문면의 상단 초과이나 §2.1 원문이 후보 (a)로 명시 허용한 '수 줄짜리 dispatch 워크플로'와 동일 형태(§3.2 비교), §16 #15 재합의 항목. 실행·정책·DB·뷰어 전부 hub (§3) |
 | 4 | 산출물: 브랜치→PR, 리포트 + **처음부터** CRITICAL/HIGH 수정 커밋 포함 | **MVP부터 제한형 fix 생성 포함**(§14.1). fix 게이트는 Tier가 아닌 검증된 finding severity 기준(§7.7) — 단 CONFIRMED 한정·HIGH 상한은 문면보다 좁음, §16 #11/#12 재합의 항목. 리뷰된 커밋이 있는 push는 항상 PR 생성(빈 커밋 앵커로 성립, §7.8) |
 | 5 | GUI: 정적 뷰어 시작, 확장 가능 구조 | versioned export 계약(review-export/1)만 소비하는 뷰어. 단 MVP는 로컬 서빙, Pages(HTML만+PAT)는 M1 — 'GitHub Pages류' 문면 편차, §16 #9 재합의 항목. 로컬 앱은 동일 계약의 2번째 소비자 (§11) |
 | 6 | 기본 모델 Claude Sonnet 최신 + provider-agnostic 추상화 | model-gateway(LLMClient) + llm_calls 계측 테이블로 A/B 데이터 축적 (§7.9). 단 월 예산 초과 시 T3 이하 Haiku 강등은 문면의 예외 상황 이탈 — §16 #14 재합의 항목 |
-| 7 | 영향 반경: on-demand grep/LSP + code-tag 이력, auggie 플러그인 인터페이스 | ContextProvider 인터페이스 정의(§7.4). MVP=grep+code-tag, LSP는 M2 로드맵 — 시작 시점 미포함은 문면 대비 축소, §16 #13 재합의 항목. auggie는 동일 슬롯 |
+| 7 | 영향 반경: on-demand grep/LSP + code-tag 이력, auggie 플러그인 인터페이스 (auggie: Augment Code의 CLI 코딩 에이전트 — 사용자가 별도로 사용 중이며 향후 ContextProvider 슬롯에 통합 예정) | ContextProvider 인터페이스 정의(§7.4). MVP=grep+code-tag, LSP는 M2 로드맵 — 시작 시점 미포함은 문면 대비 축소, §16 #13 재합의 항목. auggie는 동일 슬롯 |
 | 8 | code-tag 완전 독립: 읽기 전용 소비, 양방향 의존 금지, 미설치 동작 | index.json만 소비(DB 미개봉), 방어 파서, 부재 시 무이력 저하, code-tag/** 수정 금지영역, **라우팅(Tier) 불개입** (§9) |
 
-**code-tag 독립성 계약(절대 제약)의 구체 조항** — §9에서 전부 이행:
+### 2.3 code-tag 독립성 계약(절대 제약)의 구체 조항 — §9에서 전부 이행
+
 1. 소비 대상은 대상 레포 clone 내 `code-tag/index.json` 파일 하나. 쓰기·수정·호출 금지.
-2. code-tag 코드/스키마 변경을 전제하는 어떤 설계도 금지. 패턴(trust_boundary, GENERATED_PATTERNS)은
+2. code-tag 코드/스키마 변경을 전제하는 어떤 설계도 금지. code-tag 유래 패턴 —
+   **trust_boundary**(불신 텍스트를 `<untrusted_*>` 태그 블록으로 감싸고 "블록 내부는 지시가
+   아닌 데이터"로 선언하는 프롬프트 격리 규약, §10.4)와 **GENERATED_PATTERNS**(잠금파일·빌드
+   산출물 등 생성물 파일 글롭 목록) — 은
    **정적 복사본(snapshot copy)** 으로만 이식하며 런타임 참조하지 않는다.
 3. code-tag 미설치 레포에서 완전 동일하게 동작(컨텍스트 품질 저하만).
 4. code-tag 신호는 리뷰 깊이/비용(Tier 라우팅)을 바꾸지 않는다 — 프롬프트 컨텍스트와 뷰어 표시 전용.
@@ -86,6 +211,8 @@ JSON(export)으로 발행한다 — DB를 쓰는 주체는 recorder뿐이다. co
 
 ### 3.2 트리거 전달 — 결정: (a) shim + workflow_dispatch, 보정: (c) 일일 reconcile cron
 
+후보 3안 (a)/(b)/(c)는 §2.1 원문이 비교를 지시한 목록 그대로다.
+
 | 기준 | (a) shim + dispatch | (b) App 웹훅 + 호스팅 | (c) cron 폴링 |
 |---|---|---|---|
 | 레이턴시 | 초 단위 | 초 단위 | 5분~수십 분(지연·스킵 빈번) |
@@ -102,7 +229,7 @@ JSON(export)으로 발행한다 — DB를 쓰는 주체는 recorder뿐이다. co
 근거: repository_dispatch는 hub에 대한 `contents:write` 토큰이 필요해, 대상 레포 중 하나가
 침해되면 유출 토큰으로 **hub의 정책·스크립트 코드를 변조**하는 공급망 공격이 성립한다
 (product 비평 critical). workflow_dispatch는 `actions:write` 단일 권한으로 충분해 유출 피해가
-"hub 워크플로 실행 요청"으로 국한된다. — pipeline 렌즈 채택.
+"hub 워크플로 실행 요청"으로 국한된다. — pipeline 관점 채택.
 
 **trigger-shim 명세** (`.github/workflows/review-dispatch.yml`, 대상 레포):
 
@@ -163,7 +290,9 @@ jobs:
 4. trigger-shim 워크플로를 대상 레포에 PR로 커밋.
 5. **프론티어 베이스라인 초기화**: hub의 onboard 워크플로를 dispatch하고, 그 run의 recorder
    job(§4.2 — `recorder-db` 그룹)이 대상 브랜치(기본 main)의 **등록 시점 HEAD**를
-   `branch_frontiers`에 기록한다(단일 라이터 유지). 과거 이력은 소급 리뷰하지 않는다
+   `branch_frontiers`에 기록한다(단일 라이터 유지). 이 onboard run은 review_runs 행을 남기지
+   않는다 — recorder 입력은 JSONL의 frontier_baseline 행(§4.4) 하나뿐이다(§6.2 push_kind에
+   'initial'이 없는 이유). 과거 이력은 소급 리뷰하지 않는다
    (§16 #7, 필요 시 `--retroactive N` 수동).
 6. 이후 첫 push부터 특례 없이 **프론티어..HEAD 전수 열거**가 적용된다 — 온보딩 후 첫 push가
    다중 커밋이어도 전부 리뷰된다("첫 push는 head만" 같은 온보딩 특례 없음).
@@ -226,7 +355,7 @@ jobs:
 
 ### 4.3 커밋 열거 — 프론티어 기반 (이 설계의 척추)
 
-4개 렌즈 비평 전부에서 critical로 지목된 "pending 취소·dispatch 유실 → 영구 미리뷰"의 구조적 해법.
+4개 관점 비평 전부에서 critical로 지목된 "pending 취소·dispatch 유실 → 영구 미리뷰"의 구조적 해법.
 
 ```
 resolve_targets(repo, branch, payload):
@@ -236,7 +365,9 @@ resolve_targets(repo, branch, payload):
   if frontier exists and is_ancestor(frontier, head):
       commits = rev-list frontier..head             # 취소된 run 몫까지 자동 포함
   elif frontier exists:                             # force-push: frontier가 head 조상 아님
-      mark_unreachable_reviews_superseded()         # 도달성 개별 검사(1000개 상한)
+      mark_unreachable_reviews_superseded()         # 도달성 개별 검사(1000개 상한). 상한 초과분은
+                                                    #   superseded 마킹을 생략하고 로그만 남긴다
+                                                    #   — 이후 reconciler 대조가 수습
       close_superseded_prs()                        # 구 PR 자동 close + 코멘트
       base = merge-base(default_branch, head) or 최신 리뷰 SHA 중 head 도달 가능한 것
       commits = rev-list base..head
@@ -271,15 +402,30 @@ resolve_targets(repo, branch, payload):
   아무 것도 남기지 않는다 — 후속 self-dispatch run 또는 reconciler의 프론티어..HEAD 재열거가
   자연 수습한다. 이것이 §13.3의 "요구사항 1 보존형" 주장의 구조적 근거다.
 - **payload의 before..after는 열거에 쓰지 않는다**. force-push 판정 보조와 메타 기록에만 사용.
+- **force-push 경로의 base 선택 순서**(위 의사코드의 'or'): ① merge-base(default_branch,
+  head)를 먼저 시도하고, ② ①이 유효한 열거 base가 못 되면(default 브랜치 자체가
+  force-push되어 merge-base가 head와 같아지는 경우 포함) 기존 리뷰 SHA 중 head에서 도달
+  가능한 가장 최신 것으로 폴백한다. 둘 다 없으면 잔여 0 → no-op.
+- **patch-id**(부록 B): `git patch-id --stable`이 계산하는 diff 내용 해시 — rebase로 커밋
+  SHA가 바뀌어도 동일 변경을 식별한다. rebase-dup 필터의 '동일 브랜치' 판정은
+  reviews.run_id → review_runs.branch 조인으로 수행하며, "기존 리뷰 결과 링크 복사"는
+  tombstone 행의 summary_md에 원 리뷰 참조(review_id·commit_sha)를 남기는 것을 뜻한다.
 - force-push로 사라진 커밋의 리뷰 브랜치/PR은 즉시 close(시크릿 제거 force-push를 리뷰 브랜치가
   부활시키는 사고 방지 — agent 비평 high 해소). publisher는 push 직전 after 도달성을 재확인한다.
 
 ### 4.4 증분 체크포인트 (JSONL 아티팩트)
 
 - 커밋 1개 리뷰 완료 시마다 `run-{id}.jsonl`에 review/findings/fixes 행을 append하고 파일 flush.
+- 행 스키마: 1행 = 1 JSON 객체 `{"kind": "review"|"finding"|"fix"|"pr"|"frontier_baseline",
+  "data": {...}}`. `data`의 키는 §6.2 해당 테이블 컬럼과 1:1이다(중첩 없음 — 커밋 1개가
+  review 1행 + finding N행 + fix M행으로 평탄 append). `frontier_baseline`은 온보딩 run
+  전용(§3.4).
+- job 간 전달 계약: 커밋 루프 job이 아티팩트 이름 `review-jsonl-{run_id}`로 업로드하고
+  recorder job이 다운로드해 반영한다 — 같은 워크플로여도 job 간 파일시스템이 분리되므로
+  아티팩트가 유일한 전달 경로다.
 - 아티팩트 업로드 step과 recorder job은 둘 다 `if: always()` — 6h 타임아웃·커밋 루프 크래시에도
   완료 prefix는 recorder가 run='partial'로 기록하고 프론티어를 그 지점까지 전진시킨다(§4.3).
-  "런 종료 시 일괄 기록 → 크래시 시 전량 유실 + LLM 비용 증발"(3개 렌즈 critical) 해소.
+  "런 종료 시 일괄 기록 → 크래시 시 전량 유실 + LLM 비용 증발"(3개 관점 critical) 해소.
   recorder 자체가 실행되지 못한 크래시만 DB 무기록으로 남으며(프론티어 미전진 → 재열거 수습),
   이때 JSONL 아티팩트는 포렌식·부분 복구용이다.
 - publisher는 PR 생성 직후 pr 행을 JSONL에 append — 유령 PR(DB에 없는 PR) 방지.
@@ -293,17 +439,21 @@ resolve_targets(repo, branch, payload):
   브랜치의 기존 open `codereview/*` PR에는 superseded 코멘트를 달고 close한다
   (state='superseded' — 수용률 집계 오염 방지 §12.1). force-push 경로(§4.3)만이 아니라
   연속 normal push에도 적용해 open 봇 PR 누적 노이즈(1순위 프로덕트 리스크)를 차단한다.
-- 리뷰된 커밋(T1~T3)이 1개라도 있는 push는 **항상 PR 생성**(요구사항 4). fix 커밋이 0개면
+- 리뷰된 커밋(T1~T3)이 1개라도 있는 push는 **항상 PR 생성**(요구사항 4). PR 생성 판정의
+  '리뷰된'은 LLM 리뷰가 실행된 T1~T3을 뜻한다 — T4의 status='reviewed'(rule-only)는 이
+  판정에 포함되지 않는다. fix 커밋이 0개면
   `--allow-empty` 앵커 커밋("review report anchor [skip review]")으로 PR을 성립시킨다
   (product 비평: fix 0개면 PR 생성 자체가 거부되는 문제 해소). all-T4 push는 LLM 리뷰 없이
-  rule-only로 처리되므로(§7.2) PR 없이 DB 기록만 — BRIEF가 허용한 "T4 스킵"의 자연 귀결.
+  rule-only로 처리되므로(§7.2) PR 없이 DB 기록만 — §2.1 원문이 명시 허용한 "Tier 4는 스킵
+  또는 경량"의 자연 귀결.
 
 ### 4.6 대량 push / 대형 diff / 모노레포
 
 - 대량 push: 잔여 커밋 >20이면 오래된 순 20개만 이번 run에서 처리하고 종료 — **후속 run을
   self-dispatch**. 프론티어 열거라 "41+커밋 꼬리 유실"이 구조적으로 없다(다음 run이 이어받음).
   선별 리뷰(위험 상위 N개만)는 요구사항 1 위반이라 배제.
-- 대형 diff(>100KB 패치): 임의 절단 금지(code-tag 8000자 절단 실패 교훈). 1-pass diffstat+hunk
+- 대형 diff(>100KB 패치): 임의 절단 금지 — code-tag 운영 초기에 diff를 8000자에서 임의
+  절단했다가 분석 품질이 무너졌던 선행 사례의 교훈. 1-pass diffstat+hunk
   헤더로 위험 파일 선별 → 2-pass 선별 파일 전문 리뷰(M1). MVP에서는 diffstat 요약+위험 경로
   파일만 패치 포함 + `coverage_pct` 기록. **부분 리뷰 시 verdict는 NEEDS_WORK로 캡**하고
   PR 판단 테이블에 coverage%를 표기한다(pipeline 비평: "반쯤 본 커밋에 녹색 승인" 해소).
@@ -318,7 +468,7 @@ resolve_targets(repo, branch, payload):
 | 커밋 1개 리뷰 실패(LLM 오류 등) | reviews status='failed', retry_count++, 다음 커밋 계속. run='partial'. 재열거 시 retry<3이면 재시도, retry_count>=3이면 **종결(terminal)** — hub 이슈 생성 + 뷰어 Attention Queue 노출(§11.2). 종결 커밋은 이후 열거에서 skip(종결)되어 프론티어 전진의 '처리'에 포함(§4.3) |
 | LLM 전면 장애 | run='failed' + hub 이슈 자동 생성 |
 | run 크래시/타임아웃 | recorder 미도달 → DB 무기록·프론티어 미전진 → 다음 push 또는 일일 reconciler(rev-list {frontier}..{원격 HEAD} 계산 → 비어있지 않으면 reconcile run self-dispatch)가 자연 재열거. JSONL 아티팩트는 포렌식·부분 복구용으로 보존(M1 선택: recorder-sweep 크론이 미반영 JSONL 수습) |
-| run당 비용 상한($5) 도달 | **커밋 루프 진입 전마다 누적 검사**. 도달 시 **새 커밋 리뷰 중단이 우선** — 미처리 잔여 커밋은 DB 무기록(프론티어 미전진 구간, §4.3 전진 원칙), 후속 run self-dispatch(월간 예산 내)가 프론티어..HEAD 재열거로 수습. 단, 이번 run에서 이미 CONFIRMED된 CRITICAL의 fix 생성은 수행하고 비용은 계상한다(§7.7) |
+| run당 비용 상한($5) 도달 | **커밋 루프 진입 전마다 누적 검사**. 도달 시 **새 커밋 리뷰 중단이 우선** — 미처리 잔여 커밋은 DB 무기록(프론티어 미전진 구간, §4.3 전진 원칙), 후속 run self-dispatch(월간 예산 내)가 프론티어..HEAD 재열거로 수습. 단, 이번 run에서 이미 CONFIRMED된 CRITICAL의 fix 생성은 수행하고 비용은 계상한다. 같은 시점에 이미 CONFIRMED된 HIGH는 fix 생성 없이 report_only로 확정(§7.7) |
 | 단일 커밋 비용 상한($1.5) | 커밋 내 단계 간 검사, 초과 시 해당 커밋은 status='reviewed'로 기록하되 coverage_pct<100 기록 + verdict는 NEEDS_WORK로 캡 |
 | App 토큰 만료(60분 초과 run) | publisher 직전 토큰 재발급(App token은 hub→대상 방향 전용). recorder는 hub 자기 레포 커밋이므로 워크플로 기본 GITHUB_TOKEN 사용 — App token 불필요(§3.3 이원화 모델과 정합) |
 | 대상 브랜치 보호·필수 체크로 리뷰 브랜치 push/PR 생성 실패 | hub 레포에 이슈 자동 생성 + run status='partial'. 리뷰 결과는 DB·export에 정상 보존, 리포트는 이슈에 첨부 |
@@ -348,18 +498,31 @@ resolve_targets(repo, branch, payload):
 | static-viewer | hub viewer/ | export 계약만 소비하는 단일 HTML(escapeHtml 불변식+CSP) | export JSON → UI |
 | onboarder | scripts/onboard.sh | shim 커밋+secret 등록+repos.d 등록+App 설치 확인+**프론티어 베이스라인(등록 시점 HEAD) 초기화**(§3.4) 1커맨드 | slug → 등록 완료 |
 
+### 5.1 워크플로–코드 경계 (orchestrator job 구성 / reviewctl 호출 표면)
+
+- **orchestrator.yml은 job 2개다**: `review`(§4.1 단계 0~5 — payload 검증, clone, 열거,
+  커밋 루프, publisher, JSONL 업로드)와 `recorder`(단계 6, `needs: review`, `if: always()`,
+  concurrency `recorder-db`). reconciler/feedback/onboard 워크플로도 같은 패턴으로 각자
+  마지막에 recorder job을 둔다(§4.2).
+- **reviewctl은 단일 Python CLI**이며 워크플로 step이 서브커맨드를 1:1 호출한다:
+  `resolve`(push-resolver) → `review-loop`(§4.1 단계 3 전체 — 분류→컨텍스트→리뷰→verify→
+  score→fix를 내부 루프로 실행하며 커밋마다 JSONL flush) → `publish`(publisher) →
+  `record`(recorder job 전용). 보조 커맨드: `reconcile`, `feedback`, `onboard`. 워크플로와의
+  경계는 파일(JSONL·JSON)이고, run 최종 상태(done/partial/failed)는 JSONL에 실려 recorder가
+  review_runs에 기록한다.
+
 ---
 
 ## 6. 데이터 모델
 
 ### 6.1 파티셔닝 결정
 
-**repo별 SQLite 샤드** `reviewdb/shards/r{gh_repo_id}.db` (data 렌즈 채택 + 비평 보완 2건):
+**repo별 SQLite 샤드** `reviewdb/shards/r{gh_repo_id}.db` (data 관점 채택 + 비평 보완 2건):
 - 샤드 파일명은 GitHub **숫자 repo id** 기반 — 레포 rename에도 정체성·멱등키·이력이 보존된다
   (pipeline 비평 low 해소). slug는 repos 테이블에 보관.
 - 샤드의 원래 약점(같은 레포 브랜치 병렬, 공유 export 충돌)은 **recorder 전역 직렬화**가 해소
   하므로, 샤드는 "커밋 델타 최소화 + 레포 단위 보존/삭제"라는 장점만 남는다.
-- 전 샤드 동일 스키마 + repo_id 차원 유지 → 이후 단일 DB/Turso/Postgres 이관은 UNION만으로 가능.
+- 전 샤드 동일 스키마 + repo_id 차원 유지 → 이후 단일 DB/Turso(호스티드 SQLite 서비스)/Postgres 이관은 UNION만으로 가능.
   recorder는 repository 패턴으로 DB 접근 격리.
 - 마이그레이션: `PRAGMA user_version` 기반, `migrations/NNN_desc.sql`을 recorder가 open 시 순차
   적용(레이지). export 스키마는 DB와 분리 버저닝.
@@ -392,6 +555,9 @@ CREATE TABLE review_runs (                  -- run 1건 = 1행. recorder가 run 
   repo_id INTEGER NOT NULL REFERENCES repos(repo_id),
   delivery_id TEXT NOT NULL UNIQUE,         -- shim 합성 추적 키(로그·JSONL 상관). UNIQUE는 recorder
                                             --   재반영 멱등용 — dispatch 게이트 아님(§4.3이 흡수)
+                                            --   dispatch 외 트리거는 delivery_id를
+                                            --   {trigger}-{branch}-{after_sha}로 합성
+                                            --   (동일 범위 재실행 dedup 겸용)
   branch TEXT NOT NULL, before_sha TEXT, after_sha TEXT NOT NULL,
   push_kind TEXT NOT NULL CHECK(push_kind IN ('normal','force','reconcile')),
                                             -- 'initial' 없음: 온보딩은 프론티어 베이스라인 초기화로
@@ -423,7 +589,9 @@ CREATE TABLE reviews (                      -- 커밋 1개 = 1행 (tombstone 포
   score_testing INTEGER, score_security INTEGER, score_total INTEGER,
   verdict TEXT CHECK(verdict IN ('PRODUCTION_READY','NEEDS_WORK','NOT_READY')),
   assessment TEXT CHECK(assessment IN ('APPROVE','REQUEST_CHANGES','NEEDS_DISCUSSION')),
-                                            -- review-engine의 Overall Assessment 출력을 recorder가 기록
+                                            -- review-engine의 Overall Assessment 출력(가이드 §5.1
+                                            --   리포트 형식)을 recorder가 기록. LLM 자기 평가 참고
+                                            --   필드 — 머지 판단 기준은 코드가 계산한 verdict(§7.6)
   summary_md TEXT,
   review_depth TEXT NOT NULL DEFAULT 'full'
     CHECK(review_depth IN ('full','light','rule-only')),
@@ -500,7 +668,7 @@ CREATE TABLE pull_requests (
   pr_number INTEGER NOT NULL, branch_name TEXT NOT NULL, base_branch TEXT NOT NULL,
   state TEXT NOT NULL CHECK(state IN ('open','merged','closed','superseded')),
   merge_method TEXT,                        -- merge|squash|rebase: 피드백 판정 방식 결정
-  merge_commit_sha TEXT,                    -- 루프 가드 4.5층 + squash 대응 키
+  merge_commit_sha TEXT,                    -- 루프 가드 4층(PR 연관 DB 대조) + squash 대응 키
   opened_at TEXT NOT NULL, closed_at TEXT,
   UNIQUE(repo_id, pr_number));
 
@@ -541,7 +709,13 @@ export/repos/{slug}/summary-{YYYY-MM}.json   # 월별 페이지네이션(1MB API
                                         #   coverage, used_code_tag, pr_number,
                                         #   categories{카테고리별 count 객체},
                                         #   fix_status_counts{proposed/ci_passed/ci_failed/
-                                        #     timeout/no_ci count},
+                                        #     timeout/no_ci/not_committed count}
+                                        #     (fixes에서 파생 — proposed = status='committed'
+                                        #      AND ci_status='pending', ci_passed/ci_failed/
+                                        #      timeout/no_ci = committed 중 해당 ci_status,
+                                        #      비커밋 종결(report_only/validation_failed/
+                                        #      excluded_zone/generation_failed)은
+                                        #      not_committed 버킷으로 합산),
                                         #   acceptance_counts{accepted/rejected/partial/
                                         #     unknown/superseded count})
                                         #   + 월별 메트릭 시계열 — §11.2 L1 facet의 데이터 소스
@@ -602,9 +776,12 @@ verify:
   **단어 경계/경로 세그먼트 앵커드 정규식**으로 컴파일(`(^|[/_-])token([._-]|$)` 식) —
   `design-tokens/`, `tokenizer.py`가 CRITICAL로 오승격되는 substring 오탐 차단
   (pipeline 비평 high 해소, Tier 인플레이션 → 비용 붕괴 방지).
-- Size: 생성물·잠금파일 제외 LOC. Domain: 경로 힌트(+repos.d 오버라이드).
-- 룰 무판정·신호 충돌 시에만 Haiku 1콜(입력도 trust_boundary 격리). **LLM은 룰 엔진 결과보다
-  Tier를 낮출 수 없다(상향 전용 클램프)** — "이 변경은 문서 정리" 인젝션으로 T4 강등 →
+- Size: 생성물·잠금파일 제외 LOC — 경계는 가이드 §2.2 전사: XS ≤50 / S 51~100 / M 101~200 /
+  L 201~500 / XL 500+. Domain: 경로 힌트(+repos.d 오버라이드) — 기준은 가이드 §2.3 전사:
+  Core(비즈니스 핵심 경쟁우위) / Supporting(핵심 지원) / Generic(범용·대체 가능).
+- 룰 무판정·신호 충돌 시에만 Haiku 1콜 — 룰이 판정하지 못한 축만 보완 판정하며(5축 전체
+  재판정 아님) 입력도 trust_boundary 격리. **LLM은 룰 엔진 결과보다
+  Tier를 낮출 수 없다(상향 전용 클램프 — 축 값이 아닌 최종 Tier에 적용)** — "이 변경은 문서 정리" 인젝션으로 T4 강등 →
   리뷰 완전 우회 경로의 구조적 차단(agent·pipeline 비평 수용). 그래도 불확실 → 상위 Tier(§7.1 원칙).
 - Tier: `policy/tiering.yml` — 가이드 §3.1 트리 그대로(CRITICAL→T1, Sensitivity≠NONE→T1,
   HIGH→T2, Size≥L→T2, MEDIUM→T3, M→T3, else T4).
@@ -624,7 +801,7 @@ verify:
 - **에스컬레이션 재상향(신설)**: T3 리뷰에서 CRITICAL/HIGH finding 발생 시 해당 finding들에
   verifier를 돌리고 CONFIRMED면 fix 생성을 활성화한다(`tier_escalated=1`).
   fix 게이트는 Tier가 아니라 **검증된 finding severity**다 — 요구사항 4의 문언
-  ("CRITICAL/HIGH finding 대상") 그대로. 4개 렌즈 비평의 공통 constraint 지적 수용.
+  ("CRITICAL/HIGH finding 대상") 그대로. 4개 관점 비평의 공통 constraint 지적 수용.
 - **T1 3관점 ↔ findings.source_agent 매핑**: Security(→security) / Logic·Reliability(→logic) /
   Quality(Maintainability·Testing)(→quality). MVP 1-pass는 single — enum은
   single|security|logic|quality 유지(§6.2).
@@ -666,14 +843,27 @@ class ContextProvider(Protocol):
   `LSPProvider`(M2 — 요구사항 7 문면의 LSP를 로드맵에 명시), `AuggieProvider`(M2 —
   CLI 서브프로세스, **hub 시크릿이 없는 env로 실행**, timeout_s 강제, 출력은 untrusted 취급).
 - provider 실패는 해당 블록 생략일 뿐 리뷰를 실패시키지 않는다.
+- `changed_symbols` 추출(context-builder)은 MVP에서 diff hunk 헤더와 언어별 선언 정규식의
+  best-effort 조합이다 — 실패 시 빈 목록으로 리뷰는 계속되고, 정밀 심볼 해석은
+  LSPProvider(M2)의 몫이다.
 
-### 7.5 리뷰 → verifier → suppressor (agent 렌즈 채택)
+### 7.5 리뷰 → verifier → suppressor (agent 관점 채택)
 
 - 리뷰 프롬프트 원칙: **"모든 발견을 confidence·severity와 함께 보고하라 — 중요도 필터링
   금지(다운스트림이 거른다)"**. Sonnet 세대의 문자적 지시 추종 특성상 커버리지와 필터를
   분리해야 recall이 산다.
 - verifier: finding별 fresh-context 재검증 → verdict = **CONFIRMED / PLAUSIBLE / REFUTED**
   (+confidence). NULL(미실행)은 verifier 미대상(T3 비에스컬레이션 등).
+  - **대상 범위**: T1/T2는 **모든 finding**, T3는 에스컬레이션된 CRITICAL/HIGH만(§7.2).
+    §13.2의 T1/T2 추정치는 전 finding 검증 가정의 비용이다.
+  - **fresh-context의 뜻**: 리뷰어의 추론·다른 finding을 배제하고 해당 finding 1건 + 관련
+    파일 원문 + diff만으로 **새로 조립한** 컨텍스트(리뷰어 ContextBundle 재사용 아님) —
+    리뷰어 결론에의 앵커링을 차단하는 것이 '독립 verifier'의 실체다. 모델은 리뷰어와 동일
+    계열(Sonnet — §7.9 role 체인)이므로 모델 차원의 상관 오류(둘 다 속는 인젝션·환각)는
+    남는다: §15 'Anthropic 단일 의존' 리스크의 일부이며, M2 A/B 하네스가 교차 모델 검증 경로다.
+  - **confidence의 출처**: 리뷰어 자기보고값이 초기값이고, verifier가 실행된 finding은
+    verifier 산출값으로 대체된다 — suppressor 임계는 이 최종값을 본다(verifier 미실행
+    finding은 리뷰어 값).
 - severity별 후처리(코드 게이트):
   - **CRITICAL/HIGH는 어떤 verdict여도 리포트에서 삭제하지 않는다.**
     CONFIRMED → fix 후보(§7.7). PLAUSIBLE → **'unverified' 배지**로 리포트 유지.
@@ -683,14 +873,19 @@ class ContextProvider(Protocol):
     (MEDIUM 0.6/LOW 0.5/INFO 0.5) 미달, Tier별 리포트 상한 초과분은 suppressed=1
     (전부 DB 보존 — 임계 튜닝 근거).
 - 초기 2주는 상한을 보수적으로(T3 최대 5건, INFO 최대 2건) 시작하고 수용률 데이터로 완화 —
-  "오탐 노이즈로 shim 삭제"가 1순위 프로덕트 리스크라는 인식 계승.
+  "오탐 노이즈로 shim 삭제"가 1순위 프로덕트 리스크라는 인식 계승. Tier별 상한의 전체 값은
+  설계 고정이 아니라 정책팩의 suppression 튜닝 파라미터이며 파일럿(§14.1)에서 확정한다 —
+  단 CRITICAL/HIGH는 어떤 상한으로도 리포트에서 제외되지 않는다(위 원칙).
 
 ### 7.6 점수·verdict (결정 주체: 코드)
 
 - LLM은 영역별 근거와 **finding 감점 미반영 원점수**만 제안(이중 감점 방지 계약을 scoring.yml과
   프롬프트에 명시 — data 비평 medium 해소).
-- 코드가 **가이드 §10.3** 감점(HIGH -10, MEDIUM -3, LOW -1)과 verdict(CRITICAL 존재 →
-  NOT_READY 강제)를 결정적으로 계산(본 설계서 §10.3 금지영역과 무관 — 가이드 참조임에 주의).
+- 코드가 **가이드 §10.3** 감점(개당 HIGH -10, MEDIUM -3, LOW -1, INFO 0)과 verdict를
+  결정적으로 계산(본 설계서 §10.3 금지영역과 무관 — 가이드 참조임에 주의). CRITICAL은 감점
+  항목이 아니라 **점수와 무관하게 verdict NOT_READY 강제**다(가이드 §10.3 그대로 — 감점표
+  누락이 아님). verdict 등급 경계는 총점 기준 가이드 §10.2: PRODUCTION_READY ≥80 /
+  NEEDS_WORK 60~79 / NOT_READY <60.
   suppressed finding은 감점 제외.
 - coverage_pct < 100이면 verdict를 NEEDS_WORK로 캡.
 
@@ -703,11 +898,15 @@ class ContextProvider(Protocol):
   사람이 해당 커밋 재리뷰를 수동 트리거하는 re-review 라벨/디스패치를 M1에 둔다(§14.2).
 - **비용 캡과의 우선순위(명문화)**: run 비용 캡 도달 시 새 커밋 리뷰 중단이 우선한다.
   단, 이미 CONFIRMED된 CRITICAL의 fix 생성은 수행하고 비용은 계상한다(§4.7/§13.3과 정합).
+  같은 시점에 이미 CONFIRMED된 HIGH는 fix를 생성하지 않고 report_only로 확정한다 —
+  finding·권고는 리포트에 온전히 남는다.
 - 기준 상태: 패치는 개별 커밋 시점이 아니라 **push head(after) 상태 기준으로 생성** —
   multi-commit push에서 apply 실패가 구조적으로 나던 문제 해소(agent 비평 medium).
 - 단위: **1 finding = 1 commit**, 메시지 `fix(review): #{ordinal} {title} [skip review]` +
   트레일러 `Review-Finding: {fingerprint}`. 같은 파일을 만지는 fix 간 의존은 커밋 본문에
-  "cherry-pick 시 #N 선행 필요" 경고 명시.
+  "cherry-pick 시 #N 선행 필요" 경고 명시. fix 커밋은 finding ordinal 순으로 순차 생성·적용
+  하며, 선행 fix 때문에 apply가 깨지는 후행 fix는 검증 사다리 2(git apply --check)에서 잡혀
+  report_only로 강등된다 — 별도의 충돌 해소 로직은 두지 않는다.
 - 검증 사다리(실패 시 즉시 다음 단계 없이 강등):
   1. 금지영역·파일 화이트리스트 검사(생성 전 finding.file_path + 커밋 전 실제 diff 재검사 2회)
   2. `git apply --check`
@@ -741,8 +940,10 @@ class LLMClient(Protocol):
 ```
 
 - 기본 어댑터 anthropic(claude-sonnet-latest / claude-haiku 계열), 예비 openrouter.
-- `policy/models.yml`: role→모델 체인(폴백 포함). 모든 호출을 llm_calls에 계측 —
-  이후 동일 커밋 이중 리뷰 A/B 비교의 데이터 기반(M2).
+- `policy/models.yml`: role→모델 체인(폴백 포함)이 모델 선택의 1차 기준이고, `model_tier`
+  ('light'|'standard')는 같은 role 안에서 경량/표준을 고르는 힌트다(예: classify는
+  light→Haiku, review/verify/fix는 standard→Sonnet — Tier가 아니라 role이 선택 주체).
+  모든 호출을 llm_calls에 계측 — 이후 동일 커밋 이중 리뷰 A/B 비교의 데이터 기반(M2).
 - 프롬프트 캐시는 배치 내 연속 호출에만 기대하고 비용 추정에는 미반영(단일 커밋 push가
   최빈 케이스라는 비평 수용 — §13은 무캐시 가정).
 
@@ -751,6 +952,8 @@ class LLMClient(Protocol):
 ## 8. 정책 자산 이식 — Review_Pipeline_Guide v1.2.0 → policy pack
 
 원칙: 가이드 문서가 사람용 SSOT, `policy/`는 기계 소비용 파생물(헤더에 원본 버전 명시).
+가이드 원문(831줄)은 hub 레포에 동봉되어 정책팩과 함께 버전 관리된다 — 아래 '가이드 §N'
+참조는 저장소 안에서 닫힌다(§0.3).
 정책팩 git tag(예: `policy-v1.2.0`)가 `reviews.policy_version`으로 멱등키에 참여 —
 정책 개정 시 동일 커밋의 재리뷰가 새 행으로 허용된다(기본은 신규 커밋만 신정책, 소급은 opt-in).
 
@@ -758,14 +961,14 @@ class LLMClient(Protocol):
 |---|---|---|
 | §2 5축 정의 + §9 자동 분류(경로/키워드 표) | `policy/classification.yml` — 앵커드 정규식 룰 목록 | classifier 룰 엔진(결정적). LLM 보조는 상향 전용 |
 | §3.1 Tier 결정 트리 | `policy/tiering.yml` — 순서 있는 조건 리스트 1:1 전사 | classifier |
-| §4 체크리스트 ~70개 (§4.1 공통/§4.2 Tier별/§4.3 유형별) | `policy/checklists/*.yml` — 항목별 원자화 {id, tier, change_type, category, prompt_text(관점 지시문으로 리라이트), machine_checkable} | review-engine이 Tier×ChangeType 선별 주입(T1≈30/T2≈20/T3≈12항목). T1 멀티 관점엔 관점별 분할 배정. machine_checkable은 LLM 미주입(CI/룰 위임). findings.checklist_ids 역참조로 §13.4 효과성 루프 데이터화 |
+| §4 체크리스트 ~70개 (§4.1 공통/§4.2 Tier별/§4.3 유형별) | `policy/checklists/*.yml` — 항목별 원자화 {id, tier, change_type, category, prompt_text(관점 지시문으로 리라이트), machine_checkable} | review-engine이 Tier×ChangeType 선별 주입 — 선별 = 공통 항목(전 Tier) + 해당 Tier 추가 항목 + 해당 ChangeType 추가 항목의 합집합(T1≈30/T2≈20/T3≈12항목). T1 멀티 관점엔 관점별 분할 배정. machine_checkable은 LLM 미주입(CI/룰 위임). findings.checklist_ids 역참조로 가이드 §13.4 효과성 루프 데이터화 |
 | §5 Finding 형식·Severity 5·Category 8 | LLM JSON 출력 스키마(enum 강제) + findings CHECK 제약 이중 고정 | review-engine 출력 계약, 코드에서 클램프 |
-| §5.1/10.5 + __Prompt/Report_Template.md | `policy/report_template.md` | publisher PR 본문 렌더러 |
+| §5.1/10.5 + __Prompt/Report_Template.md(기존 레포의 PR 리포트 템플릿 파일) | `policy/report_template.md` | publisher PR 본문 렌더러 |
 | §7 에스컬레이션 | "불확실하면 상위 Tier" → 분류 클램프·재상향 규칙, 조직 에스컬레이션 → `needs-human-review` 라벨 + hub 이슈 | classifier, publisher |
 | §10 완성도 점수(4×25, 감점) | `policy/scoring.yml` — LLM은 근거·원점수만, 감점·총점·verdict는 코드 | scorer. 이중 감점 방지 계약 명시 |
-| §11 승인 모델(3-bit) | 1인 환경 축소 해석: 사용자 머지=LGTM, T1은 do-not-merge 라벨로 명시 확인 대체. 원 모델은 정책팩에 보존(팀 확장 대비) | publisher |
+| §11 승인 모델(3-bit — LGTM/OWNERSHIP/EXPERTISE 3개 승인 비트를 Tier별로 요구하는 팀용 원 모델) | 1인 환경 축소 해석: 사용자 머지=LGTM, T1은 do-not-merge 라벨로 명시 확인 대체. 원 모델은 정책팩에 보존(팀 확장 대비) | publisher |
 | §12 Post-Merge | post_merge_defect 감지(머지 후 동일 파일 Corrective 커밋 → 이전 리뷰 miss 후보 링크)로 축소 이식. 배포 체크리스트는 T1 PR 본문 첨부만 | feedback-collector (M2) |
-| §13 메트릭 | TTFR(push→PR), finding 수용률, severity 분포, 커밋당 비용, 머지 후 결함률 — export 월별 시계열 + 뷰어 대시보드. Goodhart 경계 문구는 뷰어 도움말 유지 | exporter/viewer |
+| §13 메트릭 | TTFR(push→PR), finding 수용률, severity 분포, 커밋당 비용, 머지 후 결함률 — export 월별 시계열 + 뷰어 대시보드. Goodhart 경계 문구(가이드 §13.4 — "메트릭은 방향 확인용 지표이지 목표가 아님")는 뷰어 도움말 유지 | exporter/viewer |
 | code-tag trust_boundary·GENERATED_PATTERNS | `policy/prompts/trust_boundary.md`, `policy/generated_patterns.yml` — **정적 복사본, 런타임 참조 아님** | 전 LLM 호출, diff 필터 |
 
 ---
@@ -776,7 +979,7 @@ class LLMClient(Protocol):
 
 - **index.db는 열지 않는다.** DB 파일·스키마는 code-tag의 내부 구현이고, index.json이
   Pages 뷰어가 소비하는 사실상의 발행 계약이다. JSON만 소비해야 code-tag 내부 리팩토링과의
-  결합이 최소화된다(data 렌즈 — 두 비평 모두 "모범 답안"으로 확인).
+  결합이 최소화된다(data 관점 — 두 비평 모두 "모범 답안"으로 확인).
 - 경로: 리뷰용 clone 내 `code-tag/index.json` 1순위(추가 네트워크 0, 스냅샷 일관성).
   비 main 브랜치 리뷰로 파일이 없으면 main raw fetch 폴백(실패 시 조용히 무시하되
   export의 리뷰별 `used_code_tag` 필드(§6.3) 비율을 뷰어에 노출해 침묵 열화를 관측 가능하게).
@@ -784,6 +987,23 @@ class LLMClient(Protocol):
   스냅샷 — code-tag가 이후 어떻게 바뀌어도 과거 리뷰 기록은 자립)뿐.
 
 ### 9.2 방어적 파서 (CodeTagAdapter)
+
+소비 대상의 실물 스키마(관측 사실이지 계약이 아님). code-tag가 발행하는 `index.json`의
+top-level은 4키다:
+
+```
+{ "repo":    "owner/name",
+  "pushes":  [{push_index, branch, pushed_at, commit_count, sha_range}],
+  "commits": [{id: "r-m-{push}-{commit}-1", push_index, commit_index,
+               commit_sha, commit_msg, author, committed_at}],
+  "tags":    [{commit_id → commits.id, layer1(고정 9종 — §0.3), layer2(반고정),
+               layer3(자유 PascalCase), detail(영어 한 문장 — LLM 산출),
+               files_changed(경로 배열), llm_model}] }
+```
+
+`commit_sha`가 리뷰 시스템과의 자연 조인 키다. 이 스키마는 code-tag가 예고 없이 바꿀 수
+있고 우리는 변경을 요구할 수 없으므로(독립성 계약), 아래 방어 파서와 schema_fp 드리프트
+감지가 존재한다.
 
 ```
 load(path_or_none) -> CodeTagContext | None
@@ -803,7 +1023,8 @@ load(path_or_none) -> CodeTagContext | None
 - **타이밍 갭**: 리뷰 run과 code-tag는 같은 push로 병렬 실행되므로, **지금 리뷰 중인 커밋의
   태그는 clone 스냅샷에 구조적으로 없다**(agent 비평 확인). 따라서 현재 커밋 태그 조인은
   기대하지 않으며 가치의 중심은 (1) **파일 변경 이력 주입**("이 파일 최근 10커밋 중 4회
-  Stabilization → 회귀 핫스팟"), (2) co-change 파일 → blast_radius 보강이다.
+  Stabilization(안정화·버그픽스 성격의 layer1 태그 — §0.3) → 회귀 핫스팟"),
+  (2) co-change 파일 → blast_radius 보강이다.
   code_tag 딥링크용 commit_id는 feedback cron이 다음 날 `reviews.codetag_commit_id`(§6.2)로
   lazy backfill(뷰어 표시 전용).
 - code-tag detail/layer3는 LLM 산출물이므로 `<untrusted_history>`로 감싸 데이터로만 취급
@@ -830,7 +1051,7 @@ load(path_or_none) -> CodeTagContext | None
 | 1 | shim `on.push.branches: [main]` — codereview/** push는 dispatch 미발생 + `actor != review-hub[bot]` 가드 | 시스템 브랜치 push 전체 |
 | 2 | 시스템 커밋의 봇 author 고정 + `[skip review]` 마커 → 열거 필터 | 머지로 유입된 fix 커밋 |
 | 3 | patch-id 대조: 유입 커밋 patch-id ∈ fixes.fix_patch_id → skip(reason='fix-merge', §4.3 열거 필터). 해당 fix의 'fix_kept' 전환 기록은 feedback-collector 소관(§12.1) | merge/rebase 머지 |
-| 4 | **PR 연관 조회**: 열거 시 `GET /commits/{sha}/pulls`로 해당 커밋이 자사 codereview/* PR의 머지 커밋인지 확인 + pull_requests.merge_commit_sha 대조. **MVP에서는 라이브 API 조회만 동작** — merge_commit_sha DB 대조는 이 필드를 채우는 feedback-collector(M1)부터 활성 | **squash 머지**(2·3층을 동시 관통하는 유일 케이스 — 3개 렌즈 비평 high 해소) |
+| 4 | **PR 연관 조회**: 열거 시 `GET /commits/{sha}/pulls`로 해당 커밋이 자사 codereview/* PR의 머지 커밋인지 확인 + pull_requests.merge_commit_sha 대조. **MVP에서는 라이브 API 조회만 동작** — merge_commit_sha DB 대조는 이 필드를 채우는 feedback-collector(M1)부터 활성 | **squash 머지**(2·3층을 동시 관통하는 유일 케이스 — 3개 관점 비평 high 해소) |
 | 5 | DB 멱등키: reviews 전체 UNIQUE(repo_id, commit_sha, policy_version) + recorder의 SELECT 후 INSERT/UPDATE upsert(§6.2) + 프론티어 열거의 no-op 흡수(§4.3) — 어떤 경로로 재진입해도 recorder 반영이 1회로 수렴 | 최종 방어 |
 
 hub 자기 루프: orchestrator는 workflow_dispatch 트리거라 push 이벤트와 무관하고, recorder의
@@ -883,7 +1104,7 @@ DB 커밋은 `[skip ci]` — push 트리거 워크플로가 hub에 없으므로 
 
 - **리뷰 데이터는 어떤 형태로도 공개 Pages에 게시하지 않는다.** 개인 무료 계정에서 Pages는
   public이고, finding 텍스트("src/auth.py:42에 SQL 인젝션")는 스니펫을 빼도 그 자체가
-  취약점 지도다(3개 렌즈 비평 critical). hub는 private 유지.
+  취약점 지도다(3개 관점 비평 critical). hub는 private 유지.
 - MVP: **로컬 뷰어 모드** — `git pull && just viewer`(python http.server)로 hub의
   `viewer/index.html`이 로컬에서 export를 fetch. 뷰어는 fetch('export/...')만 하므로 무수정.
 - M1: **PAT 입력형 Pages 뷰어** — 뷰어 HTML만 공개 Pages에 배포(데이터 없음), 최초 1회
@@ -891,7 +1112,10 @@ DB 커밋은 `[skip ci]` — push 트리거 워크플로가 hub에 없으므로 
   Contents API로 private export를 lazy fetch. 1MB API 상한은 월별 summary 페이지네이션으로 대응.
 - 뷰어 불변식: 모든 LLM 산출 텍스트 escapeHtml, CSP meta, schema 필드 검사 후 미지원 버전 거부.
 
-### 11.2 정보 구조 (product 렌즈 채택, code-tag viewer v2 faceted 패턴 계승)
+### 11.2 정보 구조 (product 관점 채택, code-tag 뷰어 v2 faceted 패턴 계승)
+
+faceted 패턴 = code-tag 뷰어 v2에서 검증된 UI 구조 — 좌측 facet 사이드바의 다차원 필터로
+우측 리스트를 좁히는 탐색 방식.
 
 ```
 [L0 멀티레포 대시보드]  글로벌 스트립(주간 리뷰 수·열린 CRITICAL·30일 수용률·MTD 비용)
@@ -949,7 +1173,7 @@ DB 커밋은 `[skip ci]` — push 트리거 워크플로가 hub에 없으므로 
 ### 12.2 활용
 
 - 수용률·category별 기각률을 export 시계열로 → 뷰어 트렌드 탭이 정책 튜닝 근거 화면.
-- findings.checklist_ids 조인으로 체크리스트 항목별 적중률·수용률 산출(§13.4 데이터화).
+- findings.checklist_ids 조인으로 체크리스트 항목별 적중률·수용률 산출(가이드 §13.4 데이터화).
 - M2까지는 **사람이 읽는 리포트**로만 쓰고 자동 임계 튜닝은 하지 않는다 — squash/포매터로
   인한 체계적 편향(성실히 수용된 fix가 dropped로 오집계 → 역방향 학습)이 검증되기 전의
   자동 루프는 위험(pipeline 비평 수용). M3에서 "수용률 낮은 checklist_ids 하이라이트"의
@@ -961,7 +1185,8 @@ DB 커밋은 `[skip ci]` — push 트리거 워크플로가 hub에 없으므로 
 
 ### 13.1 전제
 
-Sonnet 최신 $3/$15 per MTok 정가 기준(인트로 할인·프롬프트 캐시 미반영 — 보수 추정).
+Sonnet 최신 $3/$15 per MTok 정가 기준 — 2026-07 작성 시점의 가격·모델 세대이며, 가격 개정
+시 §13 전체 재계산이 필요하다(인트로 할인·프롬프트 캐시 미반영 — 보수 추정).
 thinking은 저 Tier 콜에서 off/low로 통제(§7.9). 신형 tokenizer의 토큰 증가 감안해 예산은
 실측 후 재보정.
 
@@ -976,17 +1201,22 @@ thinking은 저 Tier 콜에서 off/low로 통제(§7.9). 신형 tokenizer의 토
 | 1 (MVP 1-pass) | 리뷰 + verifier + fix | $0.40~0.60 |
 | 1 (M1 3관점) | 3관점 병렬 + dedup + verifier + fix | $0.60~0.90 |
 
-- 월 150커밋, 분포 T4 35%/T3 40%/T2 18%/T1 7% (앵커드 정규식으로 Tier 인플레이션 억제 후):
-  **월 $18~30 + Actions 분**. 초기 2개월은 llm_calls 실측으로 분포·단가를 검증한다.
+- 월 150커밋, 분포 T4 35%/T3 40%/T2 18%/T1 7%(앵커드 정규식으로 Tier 인플레이션 억제 후)는
+  **실측이 아닌 설계 가정**이다 — 사용자 개인 레포들의 커밋 패턴 관찰에 근거한 추정치:
+  **월 $18~30 + Actions 분**. 초기 2개월은 llm_calls 실측으로 분포·단가를 검증·재보정한다.
 - Actions: private hub 무료 2,000분/월. 커밋당 3~6분 → 월 300~600커밋이 상한. reconciler가
-  월 분 소모를 집계해 80% 도달 시 hub 이슈 경보(월말 조용한 정지 방지).
+  월 분 소모를 집계해(hub 레포 Actions runs API의 run timing 합산 — 워크플로 기본
+  GITHUB_TOKEN으로 충분, 추가 권한 불요) 80% 도달 시 hub 이슈 경보(월말 조용한 정지 방지).
 
 ### 13.3 예산 가드 (요구사항 1 보존형)
 
 - run당 상한 $5 / 단일 커밋 상한 $1.5 — 집행 지점은 §4.7. 도달 시 새 커밋 리뷰 중단이
   우선이며 미처리분은 DB 무기록(프론티어 미전진 → 월간 예산 내 후속 run self-dispatch가
   재열거 수습, §4.3 전진 원칙). 단 이미 CONFIRMED된 CRITICAL의 fix 생성은 수행·계상(§7.7).
-- 월 상한 기본 $40: 초과 시 **T3 이하를 Haiku 경량 리뷰로 강등**(무리뷰 스킵 금지 —
+- 월 상한 기본 $40: 집행 지점은 run 시작 시 — orchestrator가 커밋 루프 진입 전에 샤드 DB의
+  당월 cost_usd 합산(recorder 반영분, 읽기 전용 조회)을 확인해 초과 상태면 그 run 전체를
+  강등 모드로 시작한다(run 도중 재평가 없음 — 잔차는 run 상한 $5가 봉쇄). 초과 시
+  **T3 이하를 Haiku 경량 리뷰로 강등**(무리뷰 스킵 금지 —
   "각 커밋 개별 리뷰" 요구사항의 무단 완화라는 감사 지적 수용). 강등 리뷰는
   `review_depth='light'`(§6.2)로 기록하고 PR·뷰어에 명시. 이는 요구사항 6(기본 Sonnet)의
   예외 상황 이탈 — §16 #14 재합의 항목.
@@ -1012,7 +1242,7 @@ MVP에 포함되고(요구사항 4와 루프 방지·멱등성이 하한을 강�
 5. 결정적 scorer + coverage 캡
 6. **제한형 fix-generator**: CONFIRMED CRITICAL/HIGH, 금지영역+화이트리스트, apply-check+구문
    검증+시크릿 스캔, 1 finding=1 commit, 실패 시 report_only — **요구사항 4를 MVP부터 충족**
-   (3개 렌즈가 MVP에서 fix를 뺐다가 전원 constraint 위반 판정 — 종합에서 원복)
+   (3개 관점이 MVP에서 fix를 뺐다가 전원 constraint 위반 판정 — 종합에서 원복)
 7. push당 1 PR(빈 커밋 앵커, 30초 판독 테이블) + 멱등 publisher + superseded PR 정리
    (normal push 포함, §4.5 — open 봇 PR 누적 노이즈 차단)
 8. JSONL 체크포인트 + recorder 전역 직렬화 + 샤드 SQLite 전체 스키마 + 마이그레이션 러너
@@ -1024,7 +1254,8 @@ MVP에 포함되고(요구사항 4와 루프 방지·멱등성이 하한을 강�
 빠지는 것: T1 멀티 관점, feedback-collector, Pages PAT 뷰어, 대형 diff 2-pass, LSP/auggie,
 A/B 하네스, 모노레포 정책, 자동 정책 튜닝.
 
-MVP 출시 게이트(정량): 파일럿 1레포 선행 후 2레포로 확장해 2주간 (a) 루프/중복 PR 0건,
+MVP 출시 게이트(정량 — 게이트 측정 2주는 구현 4~5주에 이어지는 운영 검증 기간이다. 총
+리드타임 약 6~7주): 파일럿 1레포 선행 후 2레포로 확장해 2주간 (a) 루프/중복 PR 0건,
 (b) 커밋당 평균 ≤$0.20, (c) PR을 30초 내 판단 가능하다고 자가평가, (d) 유실 커밋 0건
 (reconciler 대조로 검증).
 
@@ -1057,38 +1288,71 @@ MVP 출시 게이트(정량): 파일럿 1레포 선행 후 2레포로 확장해 
 
 ## 16. 미결 사항 (사용자 결정 필요 — 각각 기본값으로 설계 진행 중)
 
+아래에서 **'문면'은 §2.1에 전문 인용된 요구사항 원문**을 가리키고, '문면 편차'는 그 원문의
+해당 항(§2.1 #N으로 표기)과 본 설계의 차이를 뜻한다.
+
 | # | 질문 | 추천 기본값 |
 |---|---|---|
 | 1 | GitHub App 생성 시점 — MVP 1주차에 만들 것인가, PAT로 더 오래 버틸 것인가? | **MVP 1주차, 첫 fix 커밋 전.** 10분 작업으로 봇 아이덴티티·루프 방지·피드백 귀속이 전부 깨끗해짐 |
-| 2 | 대상 브랜치 정책 — 요구사항 1·2 문면에는 브랜치 한정이 없으나 shim 기본값은 main만(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지(main만 시작)**, repos.d의 `branches`로 레포별 확장(§6.4). 근거: 비용·노이즈 통제 — WIP 브랜치 전수 리뷰는 1순위 리스크(노이즈로 shim 삭제)를 증폭 |
-| 3 | clean push(리뷰됐지만 finding 없음)에도 PR을 만들 것인가? | **생성**(요구사항 4 문언 준수, 빈 커밋 앵커). 노이즈로 느껴지면 repos.d 옵션으로 끔 — 단 이 완화는 요구사항 4의 명시 재합의 필요 |
+| 2 | 대상 브랜치 정책 — 요구사항 1·2 문면(§2.1 #1·#2)에는 브랜치 한정이 없으나 shim 기본값은 main만(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지(main만 시작)**, repos.d의 `branches`로 레포별 확장(§6.4). 근거: 비용·노이즈 통제 — WIP 브랜치 전수 리뷰는 1순위 리스크(노이즈로 shim 삭제)를 증폭 |
+| 3 | clean push(리뷰됐지만 finding 없음)에도 PR을 만들 것인가? | **생성**(요구사항 4 문언(§2.1 #4) 준수, 빈 커밋 앵커). 노이즈로 느껴지면 repos.d 옵션으로 끔 — 단 이 완화는 요구사항 4의 명시 재합의 필요 |
 | 4 | 월 예산 상한과 초과 동작 | **$40, 초과 시 T3 이하 Haiku 강등**(스킵 아님) |
 | 5 | PR 리포트 언어 | **한국어**(공개 레포는 repos.d에서 영어 선택) |
 | 6 | Sensitivity 축(SOX/PCI/HIPAA/GDPR)을 개인 프로젝트에 유지? | **유지하되 대부분 NONE 수용**(정책팩 원형 보존 — 팀 확장 대비). GDPR/PII 경로 룰만 실효 |
 | 7 | 온보딩 시 과거 이력 소급 리뷰? | **안 함**(code-tag와 동일 방침). 온보딩 시 프론티어를 등록 시점 HEAD로 초기화(§3.4) — 이후 push는 특례 없이 전수 리뷰. 소급은 `--retroactive N` 수동 커맨드만 |
 | 8 | merge 커밋 정책 — evil merge(first-parent diff 있음) 리뷰 포함 확정? | **포함**(요구사항 1 전수성). 빈 merge는 tombstone. 사용자 워크플로가 squash 중심이면 실질 영향 없음 |
-| 9 | MVP 뷰어가 'GitHub Pages류' 문면과 달리 로컬 정적 서빙으로 시작(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 개인 무료 계정 Pages는 public이라 리뷰 데이터 게시는 취약점 지도 공개(3개 렌즈 critical). '정적 뷰어+JSON 소비'라는 실질은 충족하며, M1에 Pages+PAT 뷰어(HTML만 공개, 데이터는 private API fetch) 추가 |
+| 9 | MVP 뷰어가 'GitHub Pages류' 문면(§2.1 #5)과 달리 로컬 정적 서빙으로 시작(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 개인 무료 계정 Pages는 public이라 리뷰 데이터 게시는 취약점 지도 공개(3개 관점 critical). '정적 뷰어+JSON 소비'라는 실질은 충족하며, M1에 Pages+PAT 뷰어(HTML만 공개, 데이터는 private API fetch) 추가 |
 | 10 | 검증 명령 규약 — 대상 레포 justfile의 test/lint 타깃을 fix 검증에 쓸 것인가? | **안 씀**(중앙 러너에서 대상 코드 실행 금지 원칙 유지). 검증은 대상 CI 위임. 예외 원하면 repos.d opt-in + 샌드박스 조건 |
-| 11 | fix 생성 게이트가 'CRITICAL/HIGH finding 대상' 문면보다 좁은 verifier CONFIRMED 한정(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 미검증 fix는 오탐 자동 수정 위험(노이즈 리스크 직결). PLAUSIBLE은 'unverified' 배지로 리포트에 보존되어 정보 손실 없음(§7.5/§7.7) |
-| 12 | push당 fix 상한 8에서 HIGH는 상한 적용(CRITICAL만 예외) — 확정 HIGH 9건 이상 시 일부가 즉시 fix되지 않음(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 초과 HIGH는 report-only로 확정(§7.7, 패치 텍스트는 리포트에 보존 — 정보 손실 없음). 필요 시 M1의 re-review 수동 트리거(라벨/디스패치)로 사람이 재리뷰. 대량 fix 일괄 생성은 검증 품질·PR 판독성 저하 |
-| 13 | LSPProvider가 MVP가 아닌 M2 시작 — 'grep/LSP' 문면 대비 시작 시점 축소(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — ContextProvider 슬롯(§7.4)은 처음부터 존재해 실질 위반 아님. grep+code-tag로 MVP 품질을 확보한 뒤 LSP 추가가 1인 운영에 현실적 |
-| 14 | 월 예산 초과 시 T3 이하 Haiku 강등 — 요구사항 6(기본 Sonnet)의 예외 상황 이탈(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 요구사항 1(전수 리뷰)과의 충돌 시 전수성 보존을 우선. 강등은 review_depth='light'·PR·뷰어로 전부 관측 가능(§13.3) |
-| 15 | 대상 레포 설치 흔적이 약 20줄 워크플로+시크릿 1개 — 요구사항 3 '0~수 줄' 문면 상단 초과(**문면 편차 — 사용자 확인 필요**) | **추천: 수용** — BRIEF 허용 후보 (a)와 동일 형태(§2 #3) |
-| 16 | `[skip review]` 커밋 마커 — 사용자 자율 우회 경로로, 전수 리뷰 원칙의 의도적 예외(**문면 편차 — 사용자 확인 필요**) | **추천: 유지하되 tombstone으로 가시화** — 열거 필터가 skipped:'bot' 행을 기록해 뷰어에서 관측 가능(§4.3) |
+| 11 | fix 생성 게이트가 'CRITICAL/HIGH finding 대상' 문면(§2.1 #4)보다 좁은 verifier CONFIRMED 한정(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 미검증 fix는 오탐 자동 수정 위험(노이즈 리스크 직결). PLAUSIBLE은 'unverified' 배지로 리포트에 보존되어 정보 손실 없음(§7.5/§7.7) |
+| 12 | push당 fix 상한 8에서 HIGH는 상한 적용(CRITICAL만 예외) — 확정 HIGH 9건 이상 시 일부가 즉시 fix되지 않음(**§2.1 #4 문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 초과 HIGH는 report-only로 확정(§7.7, 패치 텍스트는 리포트에 보존 — 정보 손실 없음). 필요 시 M1의 re-review 수동 트리거(라벨/디스패치)로 사람이 재리뷰. 대량 fix 일괄 생성은 검증 품질·PR 판독성 저하 |
+| 13 | LSPProvider가 MVP가 아닌 M2 시작 — 'grep/LSP' 문면(§2.1 #7) 대비 시작 시점 축소(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — ContextProvider 슬롯(§7.4)은 처음부터 존재해 실질 위반 아님. grep+code-tag로 MVP 품질을 확보한 뒤 LSP 추가가 1인 운영에 현실적 |
+| 14 | 월 예산 초과 시 T3 이하 Haiku 강등 — 요구사항 6(§2.1 #6, 기본 Sonnet)의 예외 상황 이탈(**문면 편차 — 사용자 확인 필요**) | **추천: 현행 유지** — 요구사항 1(전수 리뷰)과의 충돌 시 전수성 보존을 우선. 강등은 review_depth='light'·PR·뷰어로 전부 관측 가능(§13.3) |
+| 15 | 대상 레포 설치 흔적이 약 20줄 워크플로+시크릿 1개 — 요구사항 3(§2.1 #3) '0~수 줄' 문면 상단 초과(**문면 편차 — 사용자 확인 필요**) | **추천: 수용** — §2.1 원문이 트리거 후보 (a)로 명시 허용한 '수 줄짜리 dispatch 워크플로'와 동일 형태(§2.2 #3, §3.2) |
+| 16 | `[skip review]` 커밋 마커 — 사용자 자율 우회 경로로, 전수 리뷰 원칙(§2.1 #1)의 의도적 예외(**문면 편차 — 사용자 확인 필요**) | **추천: 유지하되 tombstone으로 가시화** — 열거 필터가 skipped:'bot' 행을 기록해 뷰어에서 관측 가능(§4.3) |
 
 ---
 
 ## 부록 A. 의도적으로 채택하지 않은 것 (요약)
 
-| 버린 것 | 출처 렌즈 | 이유 |
+| 버린 것 | 출처 관점 | 이유 |
 |---|---|---|
 | index.db 직접 SELECT(PRAGMA 방어 포함) | agent/pipeline/product | DB는 code-tag 내부 구현. index.json이 발행 계약 — 더 느슨한 결합이 존재하므로 채택 |
 | repository_dispatch (contents:write PAT) | data/agent/product | 유출 시 hub 코드 변조 = 공급망 공격. actions:write 단일 권한 workflow_dispatch로 대체 |
-| GitHub 큐 기반 "직렬화 공짜" 가정 | 전 렌즈 초안 | pending 1개만 유지·취소됨(사실 확인). 프론티어 열거로 대체 |
+| GitHub 큐 기반 "직렬화 공짜" 가정 | 전 관점 초안 | pending 1개만 유지·취소됨(사실 확인). 프론티어 열거로 대체 |
 | MVP에서 fix 생성 제외 | agent/product/pipeline | 확정 요구사항 4 위반(감사 전원 판정). 제한형으로 MVP 포함 |
 | 대량 push 위험 상위 N개 선별 리뷰 | agent | 요구사항 1 위반. 20개 배치+후속 run 전량 처리로 대체 |
 | 월 예산 초과 시 T3 이하 무리뷰 스킵 | pipeline | 요구사항 1 무단 완화. Haiku 경량 강등으로 대체 |
 | code-tag layer1의 Tier 가중 개입 | agent/pipeline | "부재 시 품질 저하만" 계약 위반(라우팅=비용·깊이 변경). 컨텍스트 전용으로 격하 |
-| 리뷰 데이터의 public Pages export | 전 렌즈 초안 | private 코드·취약점 지도 공개. PAT 뷰어/로컬 뷰어로 대체 |
+| 리뷰 데이터의 public Pages export | 전 관점 초안 | private 코드·취약점 지도 공개. PAT 뷰어/로컬 뷰어로 대체 |
 | git pull --rebase 재시도로 SQLite 충돌 해소 | pipeline/agent | 바이너리 rebase는 병합 불가(재시도 무의미). JSONL+전역 직렬 recorder로 대체 |
 | run_id 기반 리뷰 브랜치명 | data/agent | 재실행마다 변해 멱등성 파괴. after_sha 결정적 명명으로 대체 |
+
+---
+
+## 부록 B. 용어집
+
+| 용어 | 정의 |
+|---|---|
+| **프론티어(frontier)** | `branch_frontiers.last_processed_sha` — 브랜치별 "여기까지 처리 완료" 지점. 모든 커밋 열거는 프론티어..HEAD로 계산되어 dispatch 유실·run 취소에도 커밋 유실이 구조적으로 없다(§4.3) |
+| **tombstone** | 리뷰를 스킵한 커밋에도 남기는 기록 전용 reviews 행(status='skipped' + skip_reason). "조용히 사라진 커밋"을 없애 전수성을 감사 가능하게 한다(§4.3) |
+| **trigger-shim** | 대상 레포에 설치되는 약 20줄 워크플로. push 이벤트를 hub의 workflow_dispatch 호출로 중계하는 것이 유일한 역할(§3.2) |
+| **patch-id** | `git patch-id --stable`이 diff 내용에서 계산하는 해시. rebase 등으로 커밋 SHA가 바뀌어도 동일 변경을 식별 — rebase-dup 스킵과 fix 수용 판정의 지문(§4.3, §12.1) |
+| **JSONL 체크포인트** | 커밋 루프가 커밋 1개 처리마다 append-flush하는 run 산출 파일. 크래시 시에도 완료 prefix가 보존되어 recorder가 partial 반영한다(§4.4) |
+| **recorder** | DB의 유일한 라이터. 각 워크플로의 마지막 job으로 실행되어 전역 직렬 concurrency(recorder-db) 아래 JSONL을 SQLite 샤드에 반영하고 export를 재발행한다(§4.2) |
+| **reconciler** | 24h cron. 레포·브랜치별 rev-list {frontier}..HEAD를 대조해 누락 push를 잡아 reconcile run을 self-dispatch하는 dispatch 유실 보정 경로(§4.1, §5) |
+| **policy pack / policy_version** | Review_Pipeline_Guide를 기계 가독 YAML+프롬프트로 이식한 hub의 `policy/` 디렉토리와 그 git tag. policy_version은 reviews 멱등키에 참여해 정책 개정 시 재리뷰를 새 행으로 허용한다(§8) |
+| **repos.d** | hub의 레포별 설정 디렉토리(`repos.d/{slug}.yml`). 파일의 존재 자체가 dispatch allow-list다(§6.4) |
+| **Tier (T1~T4)** | 리뷰 깊이 4단계 — T1 Full Deep(최심층) / T2 Comprehensive / T3 Standard / T4 Light(LLM 미호출 rule-only). 5축 분류 결과가 가이드 §3.1 트리로 라우팅된다(§7.1~§7.2) |
+| **5축 분류** | Risk(CRITICAL/HIGH/MEDIUM/LOW) · Size(LOC 기준 XS ≤50 / S ≤100 / M ≤200 / L ≤500 / XL 500+) · Domain(Core/Supporting/Generic) · Change-Type(Corrective/Adaptive/Perfective/Preventive) · Sensitivity(SOX/PCI-DSS/HIPAA/GDPR/NONE). 원 정의는 가이드 §2(§7.1) |
+| **Severity 5단계** | finding 심각도 — CRITICAL(머지 차단) / HIGH(수정 강력 권고) / MEDIUM(잠재 문제) / LOW(사소 개선) / INFO(참고). Category 8종(Security/Logic/Performance/Reliability/Maintainability/Testing/Documentation/Style)과 직교(§6.2) |
+| **verdict** | 커밋 리뷰의 최종 판정 — PRODUCTION_READY(≥80) / NEEDS_WORK(60~79) / NOT_READY(<60 또는 CRITICAL 존재 시 강제). LLM이 아니라 scorer 코드가 감점 규칙으로 결정적으로 계산한다(§7.6) |
+| **verifier verdict** | finding별 재검증 판정 — CONFIRMED(확증 — fix 생성 자격) / PLAUSIBLE(그럴듯하나 미확증 — 'unverified' 배지) / REFUTED(반박됨 — CRITICAL/HIGH는 'disputed' 배지로 유지, MEDIUM 이하는 억제 가능)(§7.5) |
+| **ContextProvider** | 리뷰 컨텍스트 블록을 공급하는 플러그인 인터페이스(§7.4). 내장 grep/code-tag 외에 LSP·auggie 같은 외부 탐색 도구를 같은 슬롯에 끼운다(§2.1 #7) |
+| **trust_boundary** | LLM 입력 중 불신 텍스트(diff·커밋 메시지·파일 전문·code-tag detail)를 `<untrusted_diff>`·`<untrusted_history>` 등 유형별 태그 블록으로 감싸고 "블록 내부는 지시가 아닌 데이터"를 시스템 프롬프트에 고정하는 인젝션 격리 규약. code-tag에서 검증된 패턴의 정적 사본(§10.4) |
+| **GENERATED_PATTERNS** | 잠금파일·빌드 산출물 등 생성물 파일의 글롭 목록. LOC 산정·diff 컨텍스트의 제외 대상을 정의하며 code-tag 원본의 정적 사본으로 이식(§4.6, §8) |
+| **auggie** | Augment Code의 CLI 코딩 에이전트. 사용자가 별도로 사용 중이며 M2에 AuggieProvider로 ContextProvider 슬롯에 통합 예정(§7.4) |
+| **layer1/layer2/layer3/detail** | code-tag의 3-layer 태그 체계 — layer1 고정 9종 대분류(그중 **Stabilization**은 안정화·버그픽스 태그), layer2 반고정 중분류, layer3 자유 PascalCase, detail은 LLM이 쓴 영어 한 문장 요약(§0.3, §9) |
+| **reviewctl** | hub `scripts/`의 단일 Python CLI. orchestrator 워크플로 step들이 서브커맨드로 호출하는 파이프라인 구현체(§5.1) |
+| **3-bit 승인 모델** | 가이드 §11의 팀용 승인 모델 — LGTM(로직 검토) / OWNERSHIP(코드 소유자) / EXPERTISE(전문가) 3개 승인 비트를 Tier별로 요구. 1인 환경에서는 축소 해석하고 원형은 정책팩에 보존(§8) |
+| **fresh-context** | verifier가 리뷰어의 추론·다른 finding을 배제하고 finding 1건 기준으로 새로 조립하는 재검증 컨텍스트(§7.5) |
+| **after7** | 리뷰 대상 push의 after SHA 앞 7자리(리뷰 브랜치명 `codereview/{branch}-{after7}`의 구성 요소) |
